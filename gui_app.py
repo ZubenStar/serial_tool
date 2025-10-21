@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox
 import threading
+import json
+import os
 from serial_monitor import MultiSerialMonitor
 from typing import Dict
 
@@ -15,9 +17,11 @@ class SerialToolGUI:
         
         self.monitor = MultiSerialMonitor(log_dir="logs")
         self.port_configs: Dict[str, Dict] = {}
+        self.config_file = "serial_tool_config.json"
         
         self._create_widgets()
         self._update_available_ports()
+        self._load_config()
         
     def _create_widgets(self):
         """创建界面组件"""
@@ -41,6 +45,7 @@ class SerialToolGUI:
         baudrate_combo = ttk.Combobox(row1, textvariable=self.baudrate_var, width=10,
                                       values=["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600", "3000000"])
         baudrate_combo.pack(side=tk.LEFT, padx=5)
+        self.baudrate_var.trace_add('write', self._on_config_change)
         
         # 第二行：关键词过滤
         row2 = ttk.Frame(control_frame)
@@ -49,6 +54,7 @@ class SerialToolGUI:
         ttk.Label(row2, text="关键词 (逗号分隔):").pack(side=tk.LEFT, padx=5)
         self.keywords_var = tk.StringVar()
         ttk.Entry(row2, textvariable=self.keywords_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.keywords_var.trace_add('write', self._on_config_change)
         
         # 第三行：正则表达式
         row3 = ttk.Frame(control_frame)
@@ -57,6 +63,7 @@ class SerialToolGUI:
         ttk.Label(row3, text="正则表达式 (逗号分隔):").pack(side=tk.LEFT, padx=5)
         self.regex_var = tk.StringVar()
         ttk.Entry(row3, textvariable=self.regex_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.regex_var.trace_add('write', self._on_config_change)
         
         # 第四行：按钮
         row4 = ttk.Frame(control_frame)
@@ -89,6 +96,7 @@ class SerialToolGUI:
         ttk.Label(send_row, text="数据:").pack(side=tk.LEFT, padx=5)
         self.send_data_var = tk.StringVar()
         ttk.Entry(send_row, textvariable=self.send_data_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.send_data_var.trace_add('write', self._on_config_change)
         
         ttk.Button(send_row, text="发送", command=self._send_data).pack(side=tk.LEFT, padx=5)
         
@@ -124,6 +132,10 @@ class SerialToolGUI:
         keywords = [k.strip() for k in self.keywords_var.get().split(',') if k.strip()]
         regex_patterns = [r.strip() for r in self.regex_var.get().split(',') if r.strip()]
         return keywords, regex_patterns
+    
+    def _on_config_change(self, *args):
+        """配置变化时自动保存"""
+        self._save_config()
         
     def _start_monitor(self):
         """启动串口监控"""
@@ -239,8 +251,44 @@ class SerialToolGUI:
         else:
             messagebox.showerror("错误", f"发送失败: {port}")
     
+    def _save_config(self):
+        """保存配置到文件"""
+        config = {
+            'baudrate': self.baudrate_var.get(),
+            'keywords': self.keywords_var.get(),
+            'regex': self.regex_var.get(),
+            'send_data': self.send_data_var.get()
+        }
+        try:
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存配置失败: {e}")
+    
+    def _load_config(self):
+        """从文件加载配置"""
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    
+                # 恢复配置
+                if 'baudrate' in config:
+                    self.baudrate_var.set(config['baudrate'])
+                if 'keywords' in config:
+                    self.keywords_var.set(config['keywords'])
+                if 'regex' in config:
+                    self.regex_var.set(config['regex'])
+                if 'send_data' in config:
+                    self.send_data_var.set(config['send_data'])
+                    
+                self.status_var.set("已加载上次配置")
+            except Exception as e:
+                print(f"加载配置失败: {e}")
+    
     def close(self):
         """关闭应用"""
+        self._save_config()
         self.monitor.stop_all()
         self.root.destroy()
 

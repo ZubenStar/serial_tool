@@ -214,3 +214,4 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+serial_tool_config.json
