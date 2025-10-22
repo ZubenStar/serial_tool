@@ -159,8 +159,17 @@ class SerialMonitor:
                     time.sleep(0.01)
                     
             except Exception as e:
-                error_msg = f"[{datetime.now()}] [{self.port}] 错误: {e}"
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                error_msg = f"[{timestamp}] [{self.port}] 错误: {e}"
                 self._write_log(error_msg)
+                
+                # 打印带颜色的错误信息
+                if self.enable_color:
+                    colored_error = f"{Colors.BRIGHT_BLACK}[{timestamp}]{Colors.RESET} {self.port_color}[{self.port}]{Colors.RESET} {Colors.BRIGHT_RED}错误: {e}{Colors.RESET}"
+                    print(colored_error)
+                else:
+                    print(error_msg)
+                
                 if isinstance(e, serial.SerialException):
                     break
     
@@ -226,7 +235,11 @@ class SerialMonitor:
             return True
             
         except Exception as e:
-            print(f"启动失败 {self.port}: {e}")
+            if self.enable_color:
+                error_msg = f"{Colors.BRIGHT_RED}启动失败{Colors.RESET} {self.port_color}{self.port}{Colors.RESET}: {Colors.RED}{e}{Colors.RESET}"
+            else:
+                error_msg = f"启动失败 {self.port}: {e}"
+            print(error_msg)
             return False
     
     def stop(self):
@@ -256,7 +269,11 @@ class SerialMonitor:
                 return True
             return False
         except Exception as e:
-            print(f"发送失败: {e}")
+            if self.enable_color:
+                error_msg = f"{Colors.BRIGHT_RED}发送失败{Colors.RESET}: {Colors.RED}{e}{Colors.RESET}"
+            else:
+                error_msg = f"发送失败: {e}"
+            print(error_msg)
             return False
 
 
@@ -287,7 +304,11 @@ class MultiSerialMonitor:
             enable_color: 是否启用颜色输出（默认True）
         """
         if port in self.monitors:
-            print(f"串口 {port} 已存在")
+            if enable_color:
+                msg = f"{Colors.BRIGHT_YELLOW}警告: 串口 {port} 已存在{Colors.RESET}"
+            else:
+                msg = f"串口 {port} 已存在"
+            print(msg)
             return False
         
         monitor = SerialMonitor(

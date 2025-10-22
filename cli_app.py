@@ -2,7 +2,7 @@
 import argparse
 import sys
 import time
-from serial_monitor import MultiSerialMonitor
+from serial_monitor import MultiSerialMonitor, Colors
 
 
 def print_header():
@@ -84,10 +84,10 @@ def main():
         ):
             success_count += 1
         else:
-            print(f"警告: 无法启动串口 {port}")
+            print(f"{Colors.BRIGHT_YELLOW}警告: 无法启动串口 {port}{Colors.RESET}")
     
     if success_count == 0:
-        print("错误: 没有成功启动任何串口")
+        print(f"{Colors.BRIGHT_RED}错误: 没有成功启动任何串口{Colors.RESET}")
         sys.exit(1)
     
     print(f"\n成功启动 {success_count} 个串口")

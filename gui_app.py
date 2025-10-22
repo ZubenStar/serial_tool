@@ -122,6 +122,9 @@ class SerialToolGUI:
         # 配置基本颜色标签
         self.text_display.tag_config("timestamp", foreground="gray")
         self.text_display.tag_config("default", foreground="black")
+        self.text_display.tag_config("error", foreground="#FF5555", font=("TkDefaultFont", 9, "bold"))
+        self.text_display.tag_config("warning", foreground="#FFAA00", font=("TkDefaultFont", 9, "bold"))
+        self.text_display.tag_config("success", foreground="#55FF55")
         
         # 动态端口颜色映射
         self.port_color_tags = {}
