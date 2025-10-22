@@ -4,16 +4,29 @@ import threading
 import json
 import os
 import time
+from pathlib import Path
 from serial_monitor import MultiSerialMonitor, Colors
 from typing import Dict
 
+# 读取版本信息
+def get_version() -> str:
+    """从VERSION文件读取版本号"""
+    try:
+        version_file = Path(__file__).parent / "VERSION"
+        if version_file.exists():
+            return version_file.read_text(encoding='utf-8').strip()
+    except Exception:
+        pass
+    return "1.0.0"  # 默认版本号
+
+VERSION = get_version()
 
 class SerialToolGUI:
     """串口工具图形界面"""
     
     def __init__(self, root):
         self.root = root
-        self.root.title("多串口监控工具")
+        self.root.title(f"多串口监控工具 v{VERSION}")
         self.root.geometry("1200x800")
         
         self.monitor = MultiSerialMonitor(log_dir="logs")
@@ -131,9 +144,16 @@ class SerialToolGUI:
         self._init_color_tags()
         
         # 状态栏
+        status_frame = ttk.Frame(self.root)
+        status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        
         self.status_var = tk.StringVar(value="就绪")
-        status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)
-        status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+        status_bar = ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN)
+        status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # 版本信息标签
+        version_label = ttk.Label(status_frame, text=f"v{VERSION}", relief=tk.SUNKEN, foreground="gray")
+        version_label.pack(side=tk.RIGHT, padx=5)
     
     def _init_color_tags(self):
         """初始化颜色标签映射"""
