@@ -9,6 +9,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('serial_monitor.py', '.'),
+        ('VERSION', '.'),
     ],
     hiddenimports=[
         'serial',
