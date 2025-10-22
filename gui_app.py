@@ -3,6 +3,7 @@ from tkinter import ttk, scrolledtext, messagebox
 import threading
 import json
 import os
+import time
 from serial_monitor import MultiSerialMonitor
 from typing import Dict
 
@@ -19,9 +20,20 @@ class SerialToolGUI:
         self.port_configs: Dict[str, Dict] = {}
         self.config_file = "serial_tool_config.json"
         
+        # 性能优化：批量更新缓冲区
+        self.display_buffer = []
+        self.buffer_lock = threading.Lock()
+        self.max_buffer_size = 100  # 批量处理的最大条目数
+        self.update_interval = 100  # UI更新间隔(毫秒)
+        self.max_display_lines = 1000  # 最大显示行数
+        self.trim_to_lines = 800  # 超过最大行数时保留的行数
+        self.last_trim_time = 0  # 上次清理时间
+        self.trim_interval = 5.0  # 清理间隔(秒)
+        
         self._create_widgets()
         self._update_available_ports()
         self._load_config()
+        self._start_ui_update_loop()
         
     def _create_widgets(self):
         """创建界面组件"""
@@ -208,20 +220,66 @@ class SerialToolGUI:
             self.send_port_combo.current(0)
     
     def _display_data(self, port, timestamp, data):
-        """显示接收到的数据"""
-        def update_ui():
-            # 根据串口名称选择颜色标签
-            tag = port if port in ["COM1", "COM2", "COM3", "COM4"] else "default"
+        """显示接收到的数据（使用缓冲区批量处理）"""
+        with self.buffer_lock:
+            self.display_buffer.append({
+                'port': port,
+                'timestamp': timestamp,
+                'data': data
+            })
+    
+    def _start_ui_update_loop(self):
+        """启动UI更新循环"""
+        self._process_display_buffer()
+    
+    def _process_display_buffer(self):
+        """批量处理显示缓冲区"""
+        try:
+            with self.buffer_lock:
+                if not self.display_buffer:
+                    # 缓冲区为空，继续循环
+                    self.root.after(self.update_interval, self._process_display_buffer)
+                    return
+                
+                # 取出所有待显示的数据（最多max_buffer_size条）
+                batch = self.display_buffer[:self.max_buffer_size]
+                self.display_buffer = self.display_buffer[self.max_buffer_size:]
             
-            self.text_display.insert(tk.END, f"[{timestamp}] [{port}] {data}\n", tag)
+            # 批量插入数据到文本框
+            for item in batch:
+                port = item['port']
+                timestamp = item['timestamp']
+                data = item['data']
+                
+                # 根据串口名称选择颜色标签
+                tag = port if port in ["COM1", "COM2", "COM3", "COM4"] else "default"
+                self.text_display.insert(tk.END, f"[{timestamp}] [{port}] {data}\n", tag)
+            
+            # 滚动到底部
             self.text_display.see(tk.END)
             
-            # 限制显示行数
-            lines = int(self.text_display.index('end-1c').split('.')[0])
-            if lines > 1000:
-                self.text_display.delete('1.0', '100.0')
+            # 定期清理超出的行数（避免每次都检查）
+            current_time = time.time()
+            if current_time - self.last_trim_time > self.trim_interval:
+                self._trim_display_lines()
+                self.last_trim_time = current_time
+            
+        except Exception as e:
+            print(f"处理显示缓冲区错误: {e}")
         
-        self.root.after(0, update_ui)
+        # 继续循环
+        self.root.after(self.update_interval, self._process_display_buffer)
+    
+    def _trim_display_lines(self):
+        """清理超出的显示行数"""
+        try:
+            lines = int(self.text_display.index('end-1c').split('.')[0])
+            if lines > self.max_display_lines:
+                # 删除前面的行，保留最近的数据
+                delete_lines = lines - self.trim_to_lines
+                self.text_display.delete('1.0', f'{delete_lines}.0')
+        except Exception as e:
+            print(f"清理显示行数错误: {e}")
     
     def _clear_display(self):
         """清除显示区域"""

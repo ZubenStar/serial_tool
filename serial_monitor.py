@@ -17,7 +17,8 @@ class SerialMonitor:
                  regex_patterns: Optional[List[str]] = None,
                  log_dir: str = "logs",
                  callback: Optional[Callable] = None,
-                 save_all_to_log: bool = True):
+                 save_all_to_log: bool = True,
+                 callback_throttle_ms: int = 10):
         self.port = port
         self.baudrate = baudrate
         self.keywords = keywords or []
@@ -26,11 +27,15 @@ class SerialMonitor:
         self.log_dir.mkdir(exist_ok=True)
         self.callback = callback
         self.save_all_to_log = save_all_to_log  # 是否将所有数据保存到日志
+        self.callback_throttle_ms = callback_throttle_ms  # 回调节流时间（毫秒）
         
         self.serial_conn: Optional[serial.Serial] = None
         self.is_running = False
         self.thread: Optional[threading.Thread] = None
         self.data_queue = queue.Queue()
+        self.last_callback_time = 0  # 上次回调时间
+        self.callback_buffer = []  # 回调缓冲区
+        self.callback_lock = threading.Lock()  # 回调缓冲区锁
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Replace path separators to create valid filename
@@ -93,9 +98,9 @@ class SerialMonitor:
                                     'log_entry': log_entry
                                 })
                                 
-                                # 只有匹配的数据才触发回调
+                                # 只有匹配的数据才触发回调（带节流）
                                 if self.callback:
-                                    self.callback(self.port, timestamp, line)
+                                    self._throttled_callback(self.port, timestamp, line)
                 else:
                     time.sleep(0.01)
                     
@@ -104,6 +109,30 @@ class SerialMonitor:
                 self._write_log(error_msg)
                 if isinstance(e, serial.SerialException):
                     break
+    
+    def _throttled_callback(self, port: str, timestamp: str, data: str):
+        """节流的回调函数"""
+        current_time = time.time() * 1000  # 转换为毫秒
+        
+        with self.callback_lock:
+            self.callback_buffer.append((port, timestamp, data))
+            
+            # 检查是否到达节流时间或缓冲区已满
+            if (current_time - self.last_callback_time >= self.callback_throttle_ms or
+                len(self.callback_buffer) >= 10):  # 缓冲区达到10条就立即刷新
+                self._flush_callback_buffer_internal()
+                self.last_callback_time = current_time
+    
+    def _flush_callback_buffer_internal(self):
+        """内部刷新回调缓冲区（需要持有锁）"""
+        if self.callback_buffer and self.callback:
+            # 批量调用回调
+            for port, timestamp, data in self.callback_buffer:
+                try:
+                    self.callback(port, timestamp, data)
+                except Exception as e:
+                    print(f"回调函数错误: {e}")
+            self.callback_buffer.clear()
     
     def _write_log(self, log_entry: str):
         """写入日志文件"""
@@ -141,6 +170,10 @@ class SerialMonitor:
         if self.thread:
             self.thread.join(timeout=2)
         
+        # 停止前刷新剩余的回调
+        with self.callback_lock:
+            self._flush_callback_buffer_internal()
+        
         if self.serial_conn and self.serial_conn.is_open:
             self.serial_conn.close()
         
@@ -169,7 +202,8 @@ class MultiSerialMonitor:
                    keywords: Optional[List[str]] = None,
                    regex_patterns: Optional[List[str]] = None,
                    callback: Optional[Callable] = None,
-                   save_all_to_log: bool = True) -> bool:
+                   save_all_to_log: bool = True,
+                   callback_throttle_ms: int = 10) -> bool:
         """添加串口监控
         
         Args:
@@ -179,6 +213,7 @@ class MultiSerialMonitor:
             regex_patterns: 正则表达式列表（用于过滤显示）
             callback: 回调函数（只在数据匹配过滤条件时调用）
             save_all_to_log: 是否将所有数据保存到日志（默认True，即使有过滤条件也保存全部数据）
+            callback_throttle_ms: 回调节流时间（毫秒），默认10ms
         """
         if port in self.monitors:
             print(f"串口 {port} 已存在")
@@ -191,7 +226,8 @@ class MultiSerialMonitor:
             regex_patterns=regex_patterns,
             log_dir=self.log_dir,
             callback=callback,
-            save_all_to_log=save_all_to_log
+            save_all_to_log=save_all_to_log,
+            callback_throttle_ms=callback_throttle_ms
         )
         
         if monitor.start():
