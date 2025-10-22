@@ -4,7 +4,7 @@ import threading
 import json
 import os
 import time
-from serial_monitor import MultiSerialMonitor
+from serial_monitor import MultiSerialMonitor, Colors
 from typing import Dict
 
 
@@ -119,17 +119,53 @@ class SerialToolGUI:
         self.text_display = scrolledtext.ScrolledText(display_frame, wrap=tk.WORD, height=20)
         self.text_display.pack(fill=tk.BOTH, expand=True)
         
-        # 配置颜色标签
-        self.text_display.tag_config("COM1", foreground="blue")
-        self.text_display.tag_config("COM2", foreground="green")
-        self.text_display.tag_config("COM3", foreground="red")
-        self.text_display.tag_config("COM4", foreground="purple")
+        # 配置基本颜色标签
+        self.text_display.tag_config("timestamp", foreground="gray")
         self.text_display.tag_config("default", foreground="black")
+        
+        # 动态端口颜色映射
+        self.port_color_tags = {}
+        self._init_color_tags()
         
         # 状态栏
         self.status_var = tk.StringVar(value="就绪")
         status_bar = ttk.Label(self.root, textvariable=self.status_var, relief=tk.SUNKEN)
         status_bar.pack(fill=tk.X, side=tk.BOTTOM)
+    
+    def _init_color_tags(self):
+        """初始化颜色标签映射"""
+        # 定义Tkinter可用的颜色（对应ANSI颜色）
+        self.color_map = {
+            'BRIGHT_BLUE': '#5555FF',
+            'BRIGHT_GREEN': '#55FF55',
+            'BRIGHT_CYAN': '#55FFFF',
+            'BRIGHT_MAGENTA': '#FF55FF',
+            'BRIGHT_YELLOW': '#FFFF55',
+            'BRIGHT_RED': '#FF5555',
+            'BLUE': '#0000AA',
+            'GREEN': '#00AA00',
+            'CYAN': '#00AAAA',
+            'MAGENTA': '#AA00AA',
+        }
+    
+    def _get_port_color_tag(self, port: str) -> str:
+        """获取或创建端口的颜色标签"""
+        if port not in self.port_color_tags:
+            # 使用与serial_monitor相同的颜色选择逻辑
+            color_names = [
+                'BRIGHT_BLUE', 'BRIGHT_GREEN', 'BRIGHT_CYAN',
+                'BRIGHT_MAGENTA', 'BRIGHT_YELLOW', 'BRIGHT_RED',
+                'BLUE', 'GREEN', 'CYAN', 'MAGENTA'
+            ]
+            index = hash(port) % len(color_names)
+            color_name = color_names[index]
+            tag_name = f"port_{port}"
+            
+            # 配置颜色标签
+            self.text_display.tag_config(tag_name, foreground=self.color_map[color_name])
+            self.port_color_tags[port] = tag_name
+        
+        return self.port_color_tags[port]
         
     def _update_available_ports(self):
         """更新可用串口列表"""
@@ -164,10 +200,10 @@ class SerialToolGUI:
         
         keywords, regex_patterns = self._get_filter_config()
         
-        def callback(port, timestamp, data):
+        def callback(port, timestamp, data, colored_log_entry=""):
             self._display_data(port, timestamp, data)
         
-        if self.monitor.add_monitor(port, baudrate, keywords, regex_patterns, callback):
+        if self.monitor.add_monitor(port, baudrate, keywords, regex_patterns, callback, enable_color=False):
             self.port_configs[port] = {
                 'baudrate': baudrate,
                 'keywords': keywords,
@@ -251,9 +287,13 @@ class SerialToolGUI:
                 timestamp = item['timestamp']
                 data = item['data']
                 
-                # 根据串口名称选择颜色标签
-                tag = port if port in ["COM1", "COM2", "COM3", "COM4"] else "default"
-                self.text_display.insert(tk.END, f"[{timestamp}] [{port}] {data}\n", tag)
+                # 获取端口的颜色标签
+                port_tag = self._get_port_color_tag(port)
+                
+                # 分段插入以应用不同的颜色
+                self.text_display.insert(tk.END, f"[{timestamp}] ", "timestamp")
+                self.text_display.insert(tk.END, f"[{port}] ", port_tag)
+                self.text_display.insert(tk.END, f"{data}\n", "default")
             
             # 滚动到底部
             self.text_display.see(tk.END)

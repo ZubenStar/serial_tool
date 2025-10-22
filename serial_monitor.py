@@ -8,6 +8,52 @@ from pathlib import Path
 import time
 from typing import List, Dict, Optional, Callable
 
+# ANSI颜色代码
+class Colors:
+    """ANSI终端颜色代码"""
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    
+    # 前景色
+    BLACK = '\033[30m'
+    RED = '\033[31m'
+    GREEN = '\033[32m'
+    YELLOW = '\033[33m'
+    BLUE = '\033[34m'
+    MAGENTA = '\033[35m'
+    CYAN = '\033[36m'
+    WHITE = '\033[37m'
+    
+    # 亮色
+    BRIGHT_BLACK = '\033[90m'
+    BRIGHT_RED = '\033[91m'
+    BRIGHT_GREEN = '\033[92m'
+    BRIGHT_YELLOW = '\033[93m'
+    BRIGHT_BLUE = '\033[94m'
+    BRIGHT_MAGENTA = '\033[95m'
+    BRIGHT_CYAN = '\033[96m'
+    BRIGHT_WHITE = '\033[97m'
+    
+    @staticmethod
+    def get_port_color(port: str) -> str:
+        """根据串口名称返回对应的颜色代码"""
+        # 为不同的串口分配不同的颜色
+        colors = [
+            Colors.BRIGHT_BLUE,
+            Colors.BRIGHT_GREEN,
+            Colors.BRIGHT_CYAN,
+            Colors.BRIGHT_MAGENTA,
+            Colors.BRIGHT_YELLOW,
+            Colors.BRIGHT_RED,
+            Colors.BLUE,
+            Colors.GREEN,
+            Colors.CYAN,
+            Colors.MAGENTA,
+        ]
+        # 使用端口名的哈希值来选择颜色
+        index = hash(port) % len(colors)
+        return colors[index]
+
 
 class SerialMonitor:
     """串口监控类，支持多串口同时监控"""
@@ -18,7 +64,8 @@ class SerialMonitor:
                  log_dir: str = "logs",
                  callback: Optional[Callable] = None,
                  save_all_to_log: bool = True,
-                 callback_throttle_ms: int = 10):
+                 callback_throttle_ms: int = 10,
+                 enable_color: bool = True):
         self.port = port
         self.baudrate = baudrate
         self.keywords = keywords or []
@@ -28,6 +75,8 @@ class SerialMonitor:
         self.callback = callback
         self.save_all_to_log = save_all_to_log  # 是否将所有数据保存到日志
         self.callback_throttle_ms = callback_throttle_ms  # 回调节流时间（毫秒）
+        self.enable_color = enable_color  # 是否启用颜色输出
+        self.port_color = Colors.get_port_color(port)  # 获取该串口的颜色
         
         self.serial_conn: Optional[serial.Serial] = None
         self.is_running = False
@@ -91,16 +140,21 @@ class SerialMonitor:
                                 if not self.save_all_to_log:
                                     self._write_log(log_entry)
                                 
+                                # 创建带颜色的日志条目
+                                colored_log_entry = self._format_colored_output(timestamp, line)
+                                
                                 self.data_queue.put({
                                     'port': self.port,
                                     'timestamp': timestamp,
                                     'data': line,
-                                    'log_entry': log_entry
+                                    'log_entry': log_entry,
+                                    'colored_log_entry': colored_log_entry,
+                                    'color': self.port_color
                                 })
                                 
                                 # 只有匹配的数据才触发回调（带节流）
                                 if self.callback:
-                                    self._throttled_callback(self.port, timestamp, line)
+                                    self._throttled_callback(self.port, timestamp, line, colored_log_entry)
                 else:
                     time.sleep(0.01)
                     
@@ -110,12 +164,19 @@ class SerialMonitor:
                 if isinstance(e, serial.SerialException):
                     break
     
-    def _throttled_callback(self, port: str, timestamp: str, data: str):
+    def _format_colored_output(self, timestamp: str, data: str) -> str:
+        """格式化带颜色的输出"""
+        if self.enable_color:
+            return f"{Colors.BRIGHT_BLACK}[{timestamp}]{Colors.RESET} {self.port_color}[{self.port}]{Colors.RESET} {data}"
+        else:
+            return f"[{timestamp}] [{self.port}] {data}"
+    
+    def _throttled_callback(self, port: str, timestamp: str, data: str, colored_log_entry: str = ""):
         """节流的回调函数"""
         current_time = time.time() * 1000  # 转换为毫秒
         
         with self.callback_lock:
-            self.callback_buffer.append((port, timestamp, data))
+            self.callback_buffer.append((port, timestamp, data, colored_log_entry))
             
             # 检查是否到达节流时间或缓冲区已满
             if (current_time - self.last_callback_time >= self.callback_throttle_ms or
@@ -127,9 +188,11 @@ class SerialMonitor:
         """内部刷新回调缓冲区（需要持有锁）"""
         if self.callback_buffer and self.callback:
             # 批量调用回调
-            for port, timestamp, data in self.callback_buffer:
+            for item in self.callback_buffer:
+                port, timestamp, data = item[0], item[1], item[2]
+                colored_log_entry = item[3] if len(item) > 3 else ""
                 try:
-                    self.callback(port, timestamp, data)
+                    self.callback(port, timestamp, data, colored_log_entry)
                 except Exception as e:
                     print(f"回调函数错误: {e}")
             self.callback_buffer.clear()
@@ -155,7 +218,10 @@ class SerialMonitor:
             self.thread = threading.Thread(target=self._read_loop, daemon=True)
             self.thread.start()
             
-            msg = f"串口 {self.port} 已启动 (波特率: {self.baudrate})"
+            if self.enable_color:
+                msg = f"{self.port_color}串口 {self.port} 已启动{Colors.RESET} (波特率: {self.baudrate})"
+            else:
+                msg = f"串口 {self.port} 已启动 (波特率: {self.baudrate})"
             print(msg)
             return True
             
@@ -177,7 +243,10 @@ class SerialMonitor:
         if self.serial_conn and self.serial_conn.is_open:
             self.serial_conn.close()
         
-        print(f"串口 {self.port} 已停止")
+        if self.enable_color:
+            print(f"{self.port_color}串口 {self.port} 已停止{Colors.RESET}")
+        else:
+            print(f"串口 {self.port} 已停止")
     
     def send(self, data: str) -> bool:
         """向串口发送数据"""
@@ -203,7 +272,8 @@ class MultiSerialMonitor:
                    regex_patterns: Optional[List[str]] = None,
                    callback: Optional[Callable] = None,
                    save_all_to_log: bool = True,
-                   callback_throttle_ms: int = 10) -> bool:
+                   callback_throttle_ms: int = 10,
+                   enable_color: bool = True) -> bool:
         """添加串口监控
         
         Args:
@@ -214,6 +284,7 @@ class MultiSerialMonitor:
             callback: 回调函数（只在数据匹配过滤条件时调用）
             save_all_to_log: 是否将所有数据保存到日志（默认True，即使有过滤条件也保存全部数据）
             callback_throttle_ms: 回调节流时间（毫秒），默认10ms
+            enable_color: 是否启用颜色输出（默认True）
         """
         if port in self.monitors:
             print(f"串口 {port} 已存在")
@@ -227,7 +298,8 @@ class MultiSerialMonitor:
             log_dir=self.log_dir,
             callback=callback,
             save_all_to_log=save_all_to_log,
-            callback_throttle_ms=callback_throttle_ms
+            callback_throttle_ms=callback_throttle_ms,
+            enable_color=enable_color
         )
         
         if monitor.start():

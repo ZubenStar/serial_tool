@@ -13,9 +13,13 @@ def print_header():
     print()
 
 
-def data_callback(port: str, timestamp: str, data: str):
+def data_callback(port: str, timestamp: str, data: str, colored_log_entry: str = ""):
     """数据接收回调函数"""
-    print(f"[{timestamp}] [{port}] {data}")
+    # 优先使用带颜色的日志条目
+    if colored_log_entry:
+        print(colored_log_entry)
+    else:
+        print(f"[{timestamp}] [{port}] {data}")
 
 
 def main():
