@@ -1,0 +1,91 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送v开头的标签时触发，例如 v1.0.0
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build executable
+      run: |
+        pyinstaller --name=串口监控工具 --windowed --onefile --icon=NONE --add-data="logs;logs" --hidden-import=serial --hidden-import=serial.tools.list_ports --clean gui_app.py
+        
+    - name: Create logs directory in dist
+      run: |
+        New-Item -ItemType Directory -Force -Path dist/logs
+        
+    - name: Copy README to dist
+      run: |
+        Copy-Item README.md dist/
+        
+    - name: Create ZIP package
+      run: |
+        Compress-Archive -Path dist/* -DestinationPath "串口监控工具-Windows-x64.zip"
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-executable
+        path: 串口监控工具-Windows-x64.zip
+        
+    - name: Get version from tag
+      id: get_version
+      run: |
+        if ($env:GITHUB_REF -match 'refs/tags/(.*)') {
+          $version = $matches[1]
+        } else {
+          $version = "dev"
+        }
+        echo "VERSION=$version" >> $env:GITHUB_OUTPUT
+      shell: pwsh
+        
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: 串口监控工具-Windows-x64.zip
+        name: Release ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          ## 串口监控工具 ${{ steps.get_version.outputs.VERSION }}
+          
+          ### 功能特性
+          - ✅ 多串口同时监控
+          - ✅ 关键词和正则表达式过滤
+          - ✅ 自动保存配置
+          - ✅ 实时数据显示和日志保存
+          - ✅ 串口数据发送功能
+          
+          ### 使用方法
+          1. 下载 `串口监控工具-Windows-x64.zip`
+          2. 解压缩到任意目录
+          3. 双击运行 `串口监控工具.exe`
+          
+          ### 系统要求
+          - Windows 7/10/11 (64位)
+          - 无需安装Python或其他依赖
+          
+          ### 更新内容
+          请查看下方的提交记录
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

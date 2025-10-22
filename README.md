@@ -19,6 +19,53 @@
 pip install -r requirements.txt
 ```
 
+## 下载预编译版本（推荐）
+
+**无需安装Python！** 直接下载exe文件即可使用：
+
+👉 [前往Releases页面下载最新版本](../../releases)
+
+下载后解压即用，无需任何配置！
+
+## 打包成exe文件
+
+### 方式1：GitHub自动构建（推荐）
+
+项目配置了自动构建和发布流程，只需创建标签即可自动生成exe：
+
+```bash
+# 创建版本标签
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+GitHub Actions会自动：
+- 构建Windows exe文件
+- 创建Release发布
+- 上传打包好的ZIP文件
+
+详细说明请查看 [发布指南](RELEASE_GUIDE.md)
+
+### 方式2：本地手动打包
+
+如果您想要本地打包：
+
+```bash
+# 1. 安装打包依赖
+pip install pyinstaller
+
+# 2. 运行打包脚本
+python build_exe.py
+
+# 3. 在dist目录获取exe文件
+```
+
+**打包后的特点：**
+- ✅ 单个exe文件，无需Python环境
+- ✅ 双击即可运行
+- ✅ 配置自动保存在exe同目录下
+- ✅ 日志自动保存在exe同目录的logs文件夹
+
 ## 使用方法
 
 ### 方法1: 图形界面（推荐）
@@ -89,13 +136,18 @@ python cli_app.py --ports COM1 COM2 \
 
 ```
 serial_tool/
-├── serial_monitor.py          # 核心串口监控类
-├── gui_app.py                # 图形界面应用
-├── cli_app.py                # 命令行应用
-├── requirements.txt          # 依赖包
-├── README.md                 # 说明文档
-├── serial_tool_config.json   # GUI配置文件（自动生成）
-└── logs/                     # 日志保存目录（自动创建）
+├── .github/
+│   └── workflows/
+│       └── build-release.yml     # GitHub Actions自动构建配置
+├── serial_monitor.py             # 核心串口监控类
+├── gui_app.py                   # 图形界面应用
+├── cli_app.py                   # 命令行应用
+├── build_exe.py                 # 本地打包脚本
+├── requirements.txt             # 依赖包
+├── README.md                    # 说明文档
+├── RELEASE_GUIDE.md             # 发布指南
+├── serial_tool_config.json      # GUI配置文件（自动生成）
+└── logs/                        # 日志保存目录（自动创建）
 ```
 
 ## 核心类说明
@@ -255,9 +307,15 @@ A: 使用关键词或正则表达式过滤，只记录需要的数据
 
 ## 系统要求
 
+### 源码运行
 - Python 3.7+
 - pyserial 3.5+
 - tkinter（GUI版本需要，通常Python自带）
+
+### exe版本（打包后）
+- Windows 7/10/11（64位）
+- 无需Python环境
+- 无需安装任何依赖
 
 ## Windows系统
 
