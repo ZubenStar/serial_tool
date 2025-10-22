@@ -20,7 +20,6 @@ def build_exe():
         '--windowed',                   # 不显示控制台窗口
         '--onefile',                    # 打包成单个exe文件
         '--icon=NONE',                  # 如果有图标可以指定
-        '--add-data=logs;logs',         # 包含logs目录
         '--hidden-import=serial',       # 确保包含serial模块
         '--hidden-import=serial.tools.list_ports',
         '--clean',                      # 清理临时文件

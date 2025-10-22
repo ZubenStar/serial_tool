@@ -24,10 +24,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pyinstaller
+    
+    - name: Create logs directory for packaging
+      run: |
+        New-Item -ItemType Directory -Force -Path logs
         
     - name: Build executable
       run: |
-        pyinstaller --name=串口监控工具 --windowed --onefile --icon=NONE --add-data="logs;logs" --hidden-import=serial --hidden-import=serial.tools.list_ports --clean gui_app.py
+        pyinstaller --name=串口监控工具 --windowed --onefile --icon=NONE --hidden-import=serial --hidden-import=serial.tools.list_ports --clean gui_app.py
         
     - name: Create logs directory in dist
       run: |
