@@ -1,19 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
+import os
 
 block_cipher = None
 
 a = Analysis(
     ['gui_app.py'],
-    pathex=[],
+    pathex=[os.path.abspath('.')],
     binaries=[],
-    datas=[],
+    datas=[
+        ('serial_monitor.py', '.'),
+    ],
     hiddenimports=[
         'serial',
         'serial.tools',
         'serial.tools.list_ports',
         'serial_monitor',
     ],
-    hookspath=[],
+    hookspath=['.'],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
