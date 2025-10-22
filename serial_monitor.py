@@ -33,7 +33,9 @@ class SerialMonitor:
         self.data_queue = queue.Queue()
         
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self.log_file = self.log_dir / f"{port.replace('/', '_').replace('\\', '_')}_{timestamp}.log"
+        # Replace path separators to create valid filename
+        safe_port_name = port.replace('/', '_').replace('\\', '_')
+        self.log_file = self.log_dir / f"{safe_port_name}_{timestamp}.log"
         
     def _matches_filter(self, data: str) -> bool:
         """检查数据是否匹配过滤条件"""
