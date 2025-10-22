@@ -51,98 +51,116 @@ class SerialToolGUI:
         self._start_ui_update_loop()
         
     def _create_widgets(self):
-        """创建界面组件"""
-        # 控制面板
-        control_frame = ttk.LabelFrame(self.root, text="串口控制", padding=10)
-        control_frame.pack(fill=tk.X, padx=10, pady=5)
+        """创建界面组件 - 左右布局"""
+        # 创建主容器框架
+        main_container = ttk.Frame(self.root)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # 第一行：串口选择和波特率
-        row1 = ttk.Frame(control_frame)
-        row1.pack(fill=tk.X, pady=2)
+        # 左侧控制面板
+        left_panel = ttk.Frame(main_container, width=400)
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=(5, 2))
+        left_panel.pack_propagate(False)  # 防止自动收缩
         
-        ttk.Label(row1, text="串口:").pack(side=tk.LEFT, padx=5)
+        # 右侧数据显示区域
+        right_panel = ttk.Frame(main_container)
+        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(2, 5))
+        
+        # === 左侧面板内容 ===
+        # 串口控制区
+        control_frame = ttk.LabelFrame(left_panel, text="串口控制", padding=10)
+        control_frame.pack(fill=tk.X, pady=(0, 5))
+        
+        # 串口选择
+        port_frame = ttk.Frame(control_frame)
+        port_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(port_frame, text="串口:").pack(side=tk.LEFT)
         self.port_var = tk.StringVar()
-        self.port_combo = ttk.Combobox(row1, textvariable=self.port_var, width=15)
-        self.port_combo.pack(side=tk.LEFT, padx=5)
+        self.port_combo = ttk.Combobox(port_frame, textvariable=self.port_var, width=12)
+        self.port_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Button(port_frame, text="刷新", command=self._update_available_ports, width=6).pack(side=tk.LEFT)
         
-        ttk.Button(row1, text="刷新", command=self._update_available_ports).pack(side=tk.LEFT, padx=5)
-        
-        ttk.Label(row1, text="波特率:").pack(side=tk.LEFT, padx=5)
+        # 波特率
+        baud_frame = ttk.Frame(control_frame)
+        baud_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(baud_frame, text="波特率:").pack(side=tk.LEFT)
         self.baudrate_var = tk.StringVar(value="9600")
-        baudrate_combo = ttk.Combobox(row1, textvariable=self.baudrate_var, width=10,
+        baudrate_combo = ttk.Combobox(baud_frame, textvariable=self.baudrate_var, width=12,
                                       values=["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600", "3000000"])
-        baudrate_combo.pack(side=tk.LEFT, padx=5)
+        baudrate_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         self.baudrate_var.trace_add('write', self._on_config_change)
         
-        # 第二行：关键词过滤
-        row2 = ttk.Frame(control_frame)
-        row2.pack(fill=tk.X, pady=2)
-        
-        ttk.Label(row2, text="关键词 (逗号分隔):").pack(side=tk.LEFT, padx=5)
+        # 关键词过滤
+        kw_frame = ttk.Frame(control_frame)
+        kw_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(kw_frame, text="关键词:").pack(anchor=tk.W)
         self.keywords_var = tk.StringVar()
-        ttk.Entry(row2, textvariable=self.keywords_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Entry(kw_frame, textvariable=self.keywords_var).pack(fill=tk.X, pady=2)
         self.keywords_var.trace_add('write', self._on_config_change)
+        ttk.Label(kw_frame, text="(逗号分隔)", font=("TkDefaultFont", 8)).pack(anchor=tk.W)
         
-        # 第三行：正则表达式
-        row3 = ttk.Frame(control_frame)
-        row3.pack(fill=tk.X, pady=2)
-        
-        ttk.Label(row3, text="正则表达式 (逗号分隔):").pack(side=tk.LEFT, padx=5)
+        # 正则表达式
+        regex_frame = ttk.Frame(control_frame)
+        regex_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(regex_frame, text="正则:").pack(anchor=tk.W)
         self.regex_var = tk.StringVar()
-        ttk.Entry(row3, textvariable=self.regex_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Entry(regex_frame, textvariable=self.regex_var).pack(fill=tk.X, pady=2)
         self.regex_var.trace_add('write', self._on_config_change)
+        ttk.Label(regex_frame, text="(逗号分隔)", font=("TkDefaultFont", 8)).pack(anchor=tk.W)
         
-        # 第四行：按钮
-        row4 = ttk.Frame(control_frame)
-        row4.pack(fill=tk.X, pady=2)
+        # 控制按钮
+        btn_frame = ttk.Frame(control_frame)
+        btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame, text="启动监控", command=self._start_monitor).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(btn_frame, text="停止监控", command=self._stop_monitor).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        ttk.Button(row4, text="启动监控", command=self._start_monitor).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row4, text="停止监控", command=self._stop_monitor).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row4, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row4, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=5)
+        btn_frame2 = ttk.Frame(control_frame)
+        btn_frame2.pack(fill=tk.X, pady=2)
+        ttk.Button(btn_frame2, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(btn_frame2, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 第五行：批量启动按钮
-        row5 = ttk.Frame(control_frame)
-        row5.pack(fill=tk.X, pady=2)
+        # 批量操作区
+        batch_frame = ttk.LabelFrame(left_panel, text="批量操作", padding=10)
+        batch_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Label(row5, text="批量操作:").pack(side=tk.LEFT, padx=5)
-        ttk.Button(row5, text="添加到批量配置", command=self._add_to_batch).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row5, text="快速启动批量配置", command=self._start_batch,
-                   style='Accent.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(row5, text="清空批量配置", command=self._clear_batch).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row5, text="查看批量配置", command=self._show_batch_configs).pack(side=tk.LEFT, padx=5)
+        ttk.Button(batch_frame, text="添加到批量配置", command=self._add_to_batch).pack(fill=tk.X, pady=2)
+        ttk.Button(batch_frame, text="🚀 快速启动批量配置", command=self._start_batch).pack(fill=tk.X, pady=2)
+        
+        batch_btn_frame = ttk.Frame(batch_frame)
+        batch_btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(batch_btn_frame, text="查看配置", command=self._show_batch_configs).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(batch_btn_frame, text="清空配置", command=self._clear_batch).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
         # 活动串口列表
-        active_frame = ttk.LabelFrame(self.root, text="活动串口", padding=10)
-        active_frame.pack(fill=tk.X, padx=10, pady=5)
+        active_frame = ttk.LabelFrame(left_panel, text="活动串口", padding=10)
+        active_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
-        self.active_list = tk.Listbox(active_frame, height=3)
+        self.active_list = tk.Listbox(active_frame, height=6)
         self.active_list.pack(fill=tk.BOTH, expand=True)
         
-        # 发送数据面板
-        send_frame = ttk.LabelFrame(self.root, text="发送数据", padding=10)
-        send_frame.pack(fill=tk.X, padx=10, pady=5)
+        # 发送数据区
+        send_frame = ttk.LabelFrame(left_panel, text="发送数据", padding=10)
+        send_frame.pack(fill=tk.X, pady=5)
         
-        send_row = ttk.Frame(send_frame)
-        send_row.pack(fill=tk.X)
-        
-        ttk.Label(send_row, text="目标串口:").pack(side=tk.LEFT, padx=5)
+        send_port_frame = ttk.Frame(send_frame)
+        send_port_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(send_port_frame, text="目标串口:").pack(side=tk.LEFT)
         self.send_port_var = tk.StringVar()
-        self.send_port_combo = ttk.Combobox(send_row, textvariable=self.send_port_var, width=15)
-        self.send_port_combo.pack(side=tk.LEFT, padx=5)
+        self.send_port_combo = ttk.Combobox(send_port_frame, textvariable=self.send_port_var, width=12)
+        self.send_port_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        ttk.Label(send_row, text="数据:").pack(side=tk.LEFT, padx=5)
+        send_data_frame = ttk.Frame(send_frame)
+        send_data_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(send_data_frame, text="数据:").pack(anchor=tk.W)
         self.send_data_var = tk.StringVar()
-        ttk.Entry(send_row, textvariable=self.send_data_var, width=40).pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        ttk.Entry(send_data_frame, textvariable=self.send_data_var).pack(fill=tk.X, pady=2)
         self.send_data_var.trace_add('write', self._on_config_change)
+        ttk.Button(send_data_frame, text="发送", command=self._send_data).pack(fill=tk.X, pady=2)
         
-        ttk.Button(send_row, text="发送", command=self._send_data).pack(side=tk.LEFT, padx=5)
+        # === 右侧数据显示区 ===
+        display_frame = ttk.LabelFrame(right_panel, text="数据显示", padding=10)
+        display_frame.pack(fill=tk.BOTH, expand=True)
         
-        # 数据显示区域
-        display_frame = ttk.LabelFrame(self.root, text="数据显示", padding=10)
-        display_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
-        
-        self.text_display = scrolledtext.ScrolledText(display_frame, wrap=tk.WORD, height=20)
+        self.text_display = scrolledtext.ScrolledText(display_frame, wrap=tk.WORD)
         self.text_display.pack(fill=tk.BOTH, expand=True)
         
         # 配置基本颜色标签
