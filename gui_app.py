@@ -107,6 +107,12 @@ class SerialToolGUI:
         self.regex_var.trace_add('write', self._on_config_change)
         ttk.Label(regex_frame, text="(逗号分隔)", font=("TkDefaultFont", 8)).pack(anchor=tk.W)
         
+        # 实时应用过滤按钮
+        filter_apply_frame = ttk.Frame(control_frame)
+        filter_apply_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(filter_apply_frame, text="🔄 实时应用过滤", command=self._apply_filters_realtime).pack(fill=tk.X)
+        ttk.Label(filter_apply_frame, text="(无需重启串口)", font=("TkDefaultFont", 8), foreground="gray").pack(anchor=tk.W)
+        
         # 控制按钮
         btn_frame = ttk.Frame(control_frame)
         btn_frame.pack(fill=tk.X, pady=5)
@@ -234,6 +240,45 @@ class SerialToolGUI:
         keywords = [k.strip() for k in self.keywords_var.get().split(',') if k.strip()]
         regex_patterns = [r.strip() for r in self.regex_var.get().split(',') if r.strip()]
         return keywords, regex_patterns
+    
+    def _apply_filters_realtime(self):
+        """实时应用过滤条件到所有活动串口，无需重启串口"""
+        active_ports = self.monitor.get_active_ports()
+        
+        if not active_ports:
+            messagebox.showinfo("提示", "当前没有活动的串口监控")
+            return
+        
+        keywords, regex_patterns = self._get_filter_config()
+        
+        # 更新所有活动串口的过滤条件
+        success_count = 0
+        for port in active_ports:
+            if self.monitor.update_monitor_filters(port, keywords, regex_patterns):
+                # 更新本地配置
+                if port in self.port_configs:
+                    self.port_configs[port]['keywords'] = keywords
+                    self.port_configs[port]['regex'] = regex_patterns
+                success_count += 1
+        
+        # 更新活动串口列表显示
+        self._update_active_list()
+        
+        # 显示提示信息
+        filter_info = []
+        if keywords:
+            filter_info.append(f"关键词: {', '.join(keywords[:3])}")
+        if regex_patterns:
+            filter_info.append(f"正则: {', '.join(regex_patterns[:2])}")
+        
+        if filter_info:
+            filter_desc = " | ".join(filter_info)
+            msg = f"已实时更新 {success_count} 个串口的过滤条件\n{filter_desc}"
+        else:
+            msg = f"已清除 {success_count} 个串口的过滤条件（显示全部数据）"
+        
+        messagebox.showinfo("过滤已应用", msg)
+        self.status_var.set(f"已实时更新过滤: {success_count}个串口")
     
     def _on_config_change(self, *args):
         """配置变化时自动保存"""

@@ -91,6 +91,19 @@ class SerialMonitor:
         safe_port_name = port.replace('/', '_').replace('\\', '_')
         self.log_file = self.log_dir / f"{safe_port_name}_{timestamp}.log"
         
+    def update_filters(self, keywords: Optional[List[str]] = None, regex_patterns: Optional[List[str]] = None):
+        """动态更新过滤条件，无需重启串口
+        
+        Args:
+            keywords: 新的关键词列表
+            regex_patterns: 新的正则表达式列表（字符串）
+        """
+        if keywords is not None:
+            self.keywords = keywords
+        
+        if regex_patterns is not None:
+            self.regex_patterns = [re.compile(pattern) for pattern in regex_patterns]
+    
     def _matches_filter(self, data: str) -> bool:
         """检查数据是否匹配过滤条件"""
         if not self.keywords and not self.regex_patterns:
@@ -380,6 +393,23 @@ class MultiSerialMonitor:
             thread.join()
         
         return results
+    
+    def update_monitor_filters(self, port: str, keywords: Optional[List[str]] = None,
+                               regex_patterns: Optional[List[str]] = None) -> bool:
+        """更新指定串口的过滤条件，无需重启串口
+        
+        Args:
+            port: 串口名称
+            keywords: 新的关键词列表
+            regex_patterns: 新的正则表达式列表（字符串）
+        
+        Returns:
+            bool: 更新是否成功
+        """
+        if port in self.monitors:
+            self.monitors[port].update_filters(keywords, regex_patterns)
+            return True
+        return False
     
     def remove_monitor(self, port: str) -> bool:
         """移除串口监控"""
