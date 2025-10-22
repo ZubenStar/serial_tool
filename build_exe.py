@@ -22,6 +22,7 @@ def build_exe():
         '--icon=NONE',                  # 如果有图标可以指定
         '--hidden-import=serial',       # 确保包含serial模块
         '--hidden-import=serial.tools.list_ports',
+        '--hidden-import=serial_monitor',  # 确保包含serial_monitor模块
         '--clean',                      # 清理临时文件
         'gui_app.py'                    # 主程序文件
     ]
