@@ -283,6 +283,7 @@ class MultiSerialMonitor:
     def __init__(self, log_dir: str = "logs"):
         self.monitors: Dict[str, SerialMonitor] = {}
         self.log_dir = log_dir
+        self.start_lock = threading.Lock()  # 用于并行启动的线程安全
     
     def add_monitor(self, port: str, baudrate: int = 9600,
                    keywords: Optional[List[str]] = None,
@@ -327,6 +328,58 @@ class MultiSerialMonitor:
             self.monitors[port] = monitor
             return True
         return False
+    
+    def add_monitors_parallel(self, port_configs: List[Dict]) -> Dict[str, bool]:
+        """并行添加多个串口监控（加快启动速度）
+        
+        Args:
+            port_configs: 串口配置列表，每个配置包含:
+                - port: 串口名称
+                - baudrate: 波特率 (可选，默认9600)
+                - keywords: 关键词列表 (可选)
+                - regex_patterns: 正则表达式列表 (可选)
+                - callback: 回调函数 (可选)
+                - save_all_to_log: 是否保存所有数据 (可选，默认True)
+                - callback_throttle_ms: 回调节流时间 (可选，默认10)
+                - enable_color: 是否启用颜色 (可选，默认True)
+        
+        Returns:
+            Dict[str, bool]: 每个串口的启动结果
+        """
+        results = {}
+        threads = []
+        
+        def start_single_monitor(config: Dict):
+            port = config['port']
+            try:
+                success = self.add_monitor(
+                    port=port,
+                    baudrate=config.get('baudrate', 9600),
+                    keywords=config.get('keywords'),
+                    regex_patterns=config.get('regex_patterns'),
+                    callback=config.get('callback'),
+                    save_all_to_log=config.get('save_all_to_log', True),
+                    callback_throttle_ms=config.get('callback_throttle_ms', 10),
+                    enable_color=config.get('enable_color', True)
+                )
+                with self.start_lock:
+                    results[port] = success
+            except Exception as e:
+                print(f"并行启动串口 {port} 失败: {e}")
+                with self.start_lock:
+                    results[port] = False
+        
+        # 为每个串口创建启动线程
+        for config in port_configs:
+            thread = threading.Thread(target=start_single_monitor, args=(config,))
+            threads.append(thread)
+            thread.start()
+        
+        # 等待所有线程完成
+        for thread in threads:
+            thread.join()
+        
+        return results
     
     def remove_monitor(self, port: str) -> bool:
         """移除串口监控"""

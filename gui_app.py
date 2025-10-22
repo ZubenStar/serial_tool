@@ -6,7 +6,7 @@ import os
 import time
 from pathlib import Path
 from serial_monitor import MultiSerialMonitor, Colors
-from typing import Dict
+from typing import Dict, List
 
 # 读取版本信息
 def get_version() -> str:
@@ -32,6 +32,8 @@ class SerialToolGUI:
         self.monitor = MultiSerialMonitor(log_dir="logs")
         self.port_configs: Dict[str, Dict] = {}
         self.config_file = "serial_tool_config.json"
+        self.batch_configs_file = "serial_tool_batch_configs.json"  # 批量配置文件
+        self.batch_port_configs: List[Dict] = []  # 批量串口配置列表
         
         # 性能优化：批量更新缓冲区
         self.display_buffer = []
@@ -98,6 +100,17 @@ class SerialToolGUI:
         ttk.Button(row4, text="停止监控", command=self._stop_monitor).pack(side=tk.LEFT, padx=5)
         ttk.Button(row4, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=5)
         ttk.Button(row4, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=5)
+        
+        # 第五行：批量启动按钮
+        row5 = ttk.Frame(control_frame)
+        row5.pack(fill=tk.X, pady=2)
+        
+        ttk.Label(row5, text="批量操作:").pack(side=tk.LEFT, padx=5)
+        ttk.Button(row5, text="添加到批量配置", command=self._add_to_batch).pack(side=tk.LEFT, padx=5)
+        ttk.Button(row5, text="快速启动批量配置", command=self._start_batch,
+                   style='Accent.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(row5, text="清空批量配置", command=self._clear_batch).pack(side=tk.LEFT, padx=5)
+        ttk.Button(row5, text="查看批量配置", command=self._show_batch_configs).pack(side=tk.LEFT, padx=5)
         
         # 活动串口列表
         active_frame = ttk.LabelFrame(self.root, text="活动串口", padding=10)
@@ -372,6 +385,125 @@ class SerialToolGUI:
         else:
             messagebox.showerror("错误", f"发送失败: {port}")
     
+    def _add_to_batch(self):
+        """将当前配置添加到批量配置列表"""
+        port = self.port_var.get()
+        if not port:
+            messagebox.showwarning("警告", "请选择串口")
+            return
+        
+        try:
+            baudrate = int(self.baudrate_var.get())
+        except ValueError:
+            messagebox.showerror("错误", "波特率必须是数字")
+            return
+        
+        keywords, regex_patterns = self._get_filter_config()
+        
+        # 检查是否已存在
+        for config in self.batch_port_configs:
+            if config['port'] == port:
+                messagebox.showinfo("提示", f"串口 {port} 已在批量配置中")
+                return
+        
+        config = {
+            'port': port,
+            'baudrate': baudrate,
+            'keywords': keywords,
+            'regex_patterns': regex_patterns
+        }
+        
+        self.batch_port_configs.append(config)
+        self._save_batch_configs()
+        self.status_var.set(f"已添加 {port} 到批量配置 (共{len(self.batch_port_configs)}个)")
+    
+    def _start_batch(self):
+        """快速启动批量配置的所有串口"""
+        if not self.batch_port_configs:
+            messagebox.showwarning("警告", "批量配置为空，请先添加串口配置")
+            return
+        
+        # 准备回调函数
+        def callback(port, timestamp, data, colored_log_entry=""):
+            self._display_data(port, timestamp, data)
+        
+        # 为每个配置添加回调
+        configs_with_callback = []
+        for config in self.batch_port_configs:
+            config_copy = config.copy()
+            config_copy['callback'] = callback
+            config_copy['enable_color'] = False
+            configs_with_callback.append(config_copy)
+        
+        # 使用并行启动
+        self.status_var.set("正在并行启动批量串口...")
+        self.root.update()
+        
+        # 在后台线程中执行以避免阻塞UI
+        def start_thread():
+            results = self.monitor.add_monitors_parallel(configs_with_callback)
+            
+            # 更新配置和UI
+            success_count = 0
+            failed_ports = []
+            for port, success in results.items():
+                if success:
+                    success_count += 1
+                    # 保存端口配置
+                    for config in self.batch_port_configs:
+                        if config['port'] == port:
+                            self.port_configs[port] = config
+                            break
+                else:
+                    failed_ports.append(port)
+            
+            # 在主线程中更新UI
+            self.root.after(0, lambda: self._update_after_batch_start(success_count, failed_ports))
+        
+        threading.Thread(target=start_thread, daemon=True).start()
+    
+    def _update_after_batch_start(self, success_count, failed_ports):
+        """批量启动后更新UI"""
+        self._update_active_list()
+        
+        if failed_ports:
+            msg = f"批量启动完成: 成功{success_count}个，失败{len(failed_ports)}个\n失败串口: {', '.join(failed_ports)}"
+            messagebox.showwarning("部分成功", msg)
+        else:
+            msg = f"批量启动成功: 已启动{success_count}个串口"
+            messagebox.showinfo("成功", msg)
+        
+        self.status_var.set(f"批量启动完成: {success_count}个串口已就绪")
+    
+    def _clear_batch(self):
+        """清空批量配置"""
+        if not self.batch_port_configs:
+            messagebox.showinfo("提示", "批量配置已为空")
+            return
+        
+        result = messagebox.askyesno("确认", f"确定要清空所有批量配置吗？(共{len(self.batch_port_configs)}个)")
+        if result:
+            self.batch_port_configs.clear()
+            self._save_batch_configs()
+            self.status_var.set("已清空批量配置")
+    
+    def _show_batch_configs(self):
+        """显示批量配置详情"""
+        if not self.batch_port_configs:
+            messagebox.showinfo("批量配置", "批量配置为空")
+            return
+        
+        info = f"批量配置列表 (共{len(self.batch_port_configs)}个):\n\n"
+        for i, config in enumerate(self.batch_port_configs, 1):
+            info += f"{i}. {config['port']} @ {config['baudrate']} bps"
+            if config.get('keywords'):
+                info += f"\n   关键词: {', '.join(config['keywords'])}"
+            if config.get('regex_patterns'):
+                info += f"\n   正则: {', '.join(config['regex_patterns'])}"
+            info += "\n\n"
+        
+        messagebox.showinfo("批量配置详情", info)
+    
     def _save_config(self):
         """保存配置到文件"""
         config = {
@@ -386,8 +518,17 @@ class SerialToolGUI:
         except Exception as e:
             print(f"保存配置失败: {e}")
     
+    def _save_batch_configs(self):
+        """保存批量配置到文件"""
+        try:
+            with open(self.batch_configs_file, 'w', encoding='utf-8') as f:
+                json.dump(self.batch_port_configs, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存批量配置失败: {e}")
+    
     def _load_config(self):
         """从文件加载配置"""
+        # 加载基本配置
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
@@ -406,6 +547,16 @@ class SerialToolGUI:
                 self.status_var.set("已加载上次配置")
             except Exception as e:
                 print(f"加载配置失败: {e}")
+        
+        # 加载批量配置
+        if os.path.exists(self.batch_configs_file):
+            try:
+                with open(self.batch_configs_file, 'r', encoding='utf-8') as f:
+                    self.batch_port_configs = json.load(f)
+                if self.batch_port_configs:
+                    self.status_var.set(f"已加载上次配置和{len(self.batch_port_configs)}个批量串口配置")
+            except Exception as e:
+                print(f"加载批量配置失败: {e}")
     
     def close(self):
         """关闭应用"""
