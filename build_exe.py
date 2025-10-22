@@ -13,18 +13,11 @@ def build_exe():
     print("开始打包串口监控工具...")
     print("=" * 60)
     
-    # PyInstaller命令
+    # PyInstaller命令 - 使用spec文件
     cmd = [
         'pyinstaller',
-        '--name=串口监控工具',           # 程序名称
-        '--windowed',                   # 不显示控制台窗口
-        '--onefile',                    # 打包成单个exe文件
-        '--icon=NONE',                  # 如果有图标可以指定
-        '--hidden-import=serial',       # 确保包含serial模块
-        '--hidden-import=serial.tools.list_ports',
-        '--hidden-import=serial_monitor',  # 确保包含serial_monitor模块
         '--clean',                      # 清理临时文件
-        'gui_app.py'                    # 主程序文件
+        'serial_tool.spec'              # 使用spec配置文件
     ]
     
     try:
@@ -35,6 +28,14 @@ def build_exe():
         print("\n" + "=" * 60)
         print("✅ 打包成功!")
         print("=" * 60)
+        # 重命名exe为中文名
+        import shutil
+        if os.path.exists('dist/SerialMonitorTool.exe'):
+            if os.path.exists('dist/串口监控工具.exe'):
+                os.remove('dist/串口监控工具.exe')
+            shutil.move('dist/SerialMonitorTool.exe', 'dist/串口监控工具.exe')
+            print("\n✅ 已将exe重命名为中文名称")
+        
         print("\n生成的文件位置:")
         print("  - exe文件: dist/串口监控工具.exe")
         print("  - 配置文件: 运行时自动生成 serial_tool_config.json")

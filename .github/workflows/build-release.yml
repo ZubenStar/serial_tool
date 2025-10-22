@@ -34,7 +34,11 @@ jobs:
         
     - name: Build executable
       run: |
-        pyinstaller --name=串口监控工具 --windowed --onefile --icon=NONE --hidden-import=serial --hidden-import=serial.tools.list_ports --hidden-import=serial_monitor --clean gui_app.py
+        pyinstaller --clean serial_tool.spec
+        
+    - name: Rename executable to Chinese name
+      run: |
+        Move-Item dist/SerialMonitorTool.exe "dist/串口监控工具.exe"
         
     - name: Create logs directory in dist
       run: |
@@ -46,13 +50,13 @@ jobs:
         
     - name: Create ZIP package
       run: |
-        Compress-Archive -Path dist/* -DestinationPath "串口监控工具-Windows-x64.zip"
+        Compress-Archive -Path dist/* -DestinationPath "SerialMonitorTool-Windows-x64.zip"
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-executable
-        path: 串口监控工具-Windows-x64.zip
+        path: SerialMonitorTool-Windows-x64.zip
         
     - name: Get version from tag
       id: get_version
@@ -69,7 +73,7 @@ jobs:
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
-        files: 串口监控工具-Windows-x64.zip
+        files: SerialMonitorTool-Windows-x64.zip
         name: Release ${{ steps.get_version.outputs.VERSION }}
         body: |
           ## 串口监控工具 ${{ steps.get_version.outputs.VERSION }}
@@ -82,7 +86,7 @@ jobs:
           - ✅ 串口数据发送功能
           
           ### 使用方法
-          1. 下载 `串口监控工具-Windows-x64.zip`
+          1. 下载 `SerialMonitorTool-Windows-x64.zip`
           2. 解压缩到任意目录
           3. 双击运行 `串口监控工具.exe`
           
