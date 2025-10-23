@@ -28,6 +28,8 @@ class SerialToolGUI:
         self.root = root
         self.root.title(f"多串口监控工具 v{VERSION}")
         self.root.geometry("1200x800")
+        # 设置默认全屏
+        self.root.state('zoomed')
         
         self.monitor = MultiSerialMonitor(log_dir="logs")
         self.port_configs: Dict[str, Dict] = {}
