@@ -45,10 +45,14 @@ class SerialToolGUI:
         self.last_trim_time = 0  # 上次清理时间
         self.trim_interval = 5.0  # 清理间隔(秒)
         
+        # 数据统计更新
+        self.stats_update_interval = 1000  # 统计信息更新间隔(毫秒)
+        
         self._create_widgets()
         self._update_available_ports()
         self._load_config()
         self._start_ui_update_loop()
+        self._start_stats_update_loop()
         
     def _create_widgets(self):
         """创建界面组件 - 左右布局"""
@@ -179,6 +183,20 @@ class SerialToolGUI:
         # 动态端口颜色映射
         self.port_color_tags = {}
         self._init_color_tags()
+        
+        # 数据统计显示区域（在数据显示区下方）
+        stats_frame = ttk.LabelFrame(right_panel, text="数据统计", padding=5)
+        stats_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # 使用Text widget来显示统计信息，支持多行
+        self.stats_display = tk.Text(stats_frame, height=3, wrap=tk.WORD, state=tk.DISABLED,
+                                      background='#f0f0f0', relief=tk.FLAT)
+        self.stats_display.pack(fill=tk.X)
+        
+        # 配置统计显示的颜色标签
+        self.stats_display.tag_config("port_name", foreground="blue", font=("TkDefaultFont", 9, "bold"))
+        self.stats_display.tag_config("bytes", foreground="green", font=("TkDefaultFont", 9))
+        self.stats_display.tag_config("separator", foreground="gray")
         
         # 状态栏
         status_frame = ttk.Frame(self.root)
@@ -620,6 +638,62 @@ class SerialToolGUI:
                     self.status_var.set(f"已加载上次配置和{len(self.batch_port_configs)}个批量串口配置")
             except Exception as e:
                 print(f"加载批量配置失败: {e}")
+    
+    def _format_bytes(self, bytes_count: int) -> str:
+        """格式化字节数为可读格式"""
+        if bytes_count < 1024:
+            return f"{bytes_count} B"
+        elif bytes_count < 1024 * 1024:
+            return f"{bytes_count / 1024:.2f} KB"
+        elif bytes_count < 1024 * 1024 * 1024:
+            return f"{bytes_count / (1024 * 1024):.2f} MB"
+        else:
+            return f"{bytes_count / (1024 * 1024 * 1024):.2f} GB"
+    
+    def _update_stats_display(self):
+        """更新统计信息显示"""
+        try:
+            # 获取所有串口的统计信息
+            all_stats = self.monitor.get_all_stats()
+            
+            if not all_stats:
+                # 没有活动串口
+                self.stats_display.config(state=tk.NORMAL)
+                self.stats_display.delete('1.0', tk.END)
+                self.stats_display.insert(tk.END, "无活动串口", "separator")
+                self.stats_display.config(state=tk.DISABLED)
+                return
+            
+            # 构建显示内容
+            self.stats_display.config(state=tk.NORMAL)
+            self.stats_display.delete('1.0', tk.END)
+            
+            # 按端口排序
+            sorted_ports = sorted(all_stats.keys())
+            
+            for i, port in enumerate(sorted_ports):
+                stats = all_stats[port]
+                bytes_count = stats['total_bytes']
+                formatted_bytes = self._format_bytes(bytes_count)
+                
+                # 插入端口名
+                self.stats_display.insert(tk.END, port, "port_name")
+                self.stats_display.insert(tk.END, ": ", "separator")
+                self.stats_display.insert(tk.END, formatted_bytes, "bytes")
+                
+                # 如果不是最后一个，添加分隔符
+                if i < len(sorted_ports) - 1:
+                    self.stats_display.insert(tk.END, "  |  ", "separator")
+            
+            self.stats_display.config(state=tk.DISABLED)
+            
+        except Exception as e:
+            print(f"更新统计信息错误: {e}")
+    
+    def _start_stats_update_loop(self):
+        """启动统计信息更新循环"""
+        self._update_stats_display()
+        self.root.after(self.stats_update_interval, self._start_stats_update_loop)
     
     def close(self):
         """关闭应用"""

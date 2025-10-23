@@ -86,6 +86,10 @@ class SerialMonitor:
         self.callback_buffer = []  # 回调缓冲区
         self.callback_lock = threading.Lock()  # 回调缓冲区锁
         
+        # 数据统计
+        self.total_bytes_received = 0  # 接收的总字节数
+        self.stats_lock = threading.Lock()  # 统计数据锁
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Replace path separators to create valid filename
         safe_port_name = port.replace('/', '_').replace('\\', '_')
@@ -127,6 +131,10 @@ class SerialMonitor:
             try:
                 if self.serial_conn and self.serial_conn.in_waiting:
                     raw_data = self.serial_conn.read(self.serial_conn.in_waiting)
+                    
+                    # 更新接收的总字节数
+                    with self.stats_lock:
+                        self.total_bytes_received += len(raw_data)
                     
                     try:
                         data = raw_data.decode('utf-8', errors='ignore')
@@ -288,6 +296,14 @@ class SerialMonitor:
                 error_msg = f"发送失败: {e}"
             print(error_msg)
             return False
+    
+    def get_stats(self) -> Dict:
+        """获取统计信息"""
+        with self.stats_lock:
+            return {
+                'total_bytes': self.total_bytes_received,
+                'port': self.port
+            }
 
 
 class MultiSerialMonitor:
@@ -434,6 +450,13 @@ class MultiSerialMonitor:
     def get_active_ports(self) -> List[str]:
         """获取活动串口列表"""
         return list(self.monitors.keys())
+    
+    def get_all_stats(self) -> Dict[str, Dict]:
+        """获取所有串口的统计信息"""
+        stats = {}
+        for port, monitor in self.monitors.items():
+            stats[port] = monitor.get_stats()
+        return stats
     
     @staticmethod
     def list_available_ports() -> List[str]:
