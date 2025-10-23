@@ -140,14 +140,7 @@ class SerialToolGUI:
         ttk.Button(batch_btn_frame, text="查看配置", command=self._show_batch_configs).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(batch_btn_frame, text="清空配置", command=self._clear_batch).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 活动串口列表
-        active_frame = ttk.LabelFrame(left_panel, text="活动串口", padding=10)
-        active_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-        
-        self.active_list = tk.Listbox(active_frame, height=6)
-        self.active_list.pack(fill=tk.BOTH, expand=True)
-        
-        # 发送数据区
+        # 发送数据区 - 移到活动串口列表之前
         send_frame = ttk.LabelFrame(left_panel, text="发送数据", padding=10)
         send_frame.pack(fill=tk.X, pady=5)
         
@@ -165,6 +158,13 @@ class SerialToolGUI:
         ttk.Entry(send_data_frame, textvariable=self.send_data_var).pack(fill=tk.X, pady=2)
         self.send_data_var.trace_add('write', self._on_config_change)
         ttk.Button(send_data_frame, text="发送", command=self._send_data).pack(fill=tk.X, pady=2)
+        
+        # 活动串口列表 - 移到发送数据区之后
+        active_frame = ttk.LabelFrame(left_panel, text="活动串口", padding=10)
+        active_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        self.active_list = tk.Listbox(active_frame, height=4)
+        self.active_list.pack(fill=tk.BOTH, expand=True)
         
         # === 右侧数据显示区 ===
         display_frame = ttk.LabelFrame(right_panel, text="数据显示", padding=10)
