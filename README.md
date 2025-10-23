@@ -12,6 +12,7 @@
 ✅ **图形界面和命令行** - 提供GUI和CLI两种使用方式
 ✅ **实时数据显示** - 实时显示串口接收到的数据
 ✅ **数据发送** - 支持向指定串口发送数据
+✅ **数据Dump功能** - 📦 支持dump原始二进制数据到文件（适用于耳机等音频设备）
 ✅ **配置记忆功能** - 自动保存和恢复上次使用的配置（波特率、关键词、正则表达式、发送数据）
 ✅ **批量配置保存** - 保存常用的多串口配置，一键快速启动
 
@@ -83,9 +84,14 @@ python gui_app.py
 4. 点击"启动监控"开始监控
 5. 可以同时启动多个串口监控
 6. 在"发送数据"区域可以向指定串口发送数据
-7. 所有数据实时显示在显示区域
-8. 日志自动保存到 `logs/` 目录
-9. **配置自动保存** - 您的设置会自动保存，下次打开时自动恢复
+7. **Dump数据功能** - 在"📦 Dump数据"区域可以dump原始二进制数据
+   - 选择要dump的串口
+   - 点击"▶ 开始Dump"开始保存原始二进制数据
+   - 点击"⏹ 停止Dump"停止保存
+   - 数据保存到 `dumps/` 目录，文件名格式：`{串口名}_{时间戳}.bin`
+8. 所有数据实时显示在显示区域
+9. 日志自动保存到 `logs/` 目录
+10. **配置自动保存** - 您的设置会自动保存，下次打开时自动恢复
 
 **批量快速启动功能:**
 1. 配置好串口参数后，点击"添加到批量配置"
@@ -309,6 +315,66 @@ monitor.stop_all()
 
 查看完整示例: [`example_batch_usage.py`](example_batch_usage.py)
 
+### 示例6: 使用Dump功能保存原始二进制数据
+
+```python
+from serial_monitor import MultiSerialMonitor
+import time
+
+def my_callback(port, timestamp, data, colored_log_entry=""):
+    print(f"[{port}] {data}")
+
+# 创建监控器
+monitor = MultiSerialMonitor(log_dir="logs")
+
+# 添加串口监控
+monitor.add_monitor(
+    port='COM3',
+    baudrate=115200,
+    callback=my_callback,
+    enable_color=True
+)
+
+# 开始dump原始二进制数据（适用于音频、图像等二进制数据流）
+monitor.start_dump('COM3')
+print("正在dump数据...")
+
+# dump 10秒
+time.sleep(10)
+
+# 停止dump
+monitor.stop_dump('COM3')
+print("Dump完成")
+
+# 查看统计信息
+stats = monitor.get_all_stats()
+if 'COM3' in stats:
+    print(f"总接收: {stats['COM3']['total_bytes']} 字节")
+    print(f"已dump: {stats['COM3']['dumped_bytes']} 字节")
+    print(f"文件: {stats['COM3']['dump_file']}")
+
+# 停止监控
+monitor.stop_all()
+```
+
+查看完整示例: [`example_dump_usage.py`](example_dump_usage.py)
+
+**Dump功能说明：**
+- 保存的是**原始二进制数据**，不做任何编码转换
+- 适用于耳机音频数据、图像数据等二进制流
+- **智能标记检测**：自动识别 `[audio dump]` 等标记，只dump标记后的二进制数据
+- 数据格式：根据设备协议，可能包含头部信息 + 二进制数据
+- 可以随时开始/停止dump，不影响串口监控
+- dump文件保存在 `dumps/` 目录
+
+**协议格式识别：**
+```
+[2025-10-23 16:17:13.xxx] [COM5] [trace]正常日志消息
+[2025-10-23 16:17:13.xxx] [COM5] [trace][audio dump]<二进制音频数据>
+[2025-10-23 16:17:13.xxx] [COM5] 其他正常日志
+```
+当检测到 `[audio dump]` 标记时，会自动提取并保存标记后的二进制数据。
+
 ## 日志格式
 
 日志文件保存在 `logs/` 目录，文件名格式：`{串口名}_{时间戳}.log`
@@ -319,6 +385,21 @@ monitor.stop_all()
 [2025-10-21 14:00:02.456] [COM1] Humidity: 60%
 [2025-10-21 14:00:03.789] [COM1] ERROR: Sensor timeout
 ```
+
+## Dump文件格式
+
+Dump文件保存在 `dumps/` 目录，文件名格式：`{串口名}_{时间戳}.bin`
+
+示例文件名：
+```
+dumps/COM3_20251023_161234.bin
+dumps/COM4_20251023_161235.bin
+```
+
+**注意：**
+- Dump文件包含**原始二进制数据**，可能包含设备特定的协议头
+- 需要根据具体设备的协议来解析dump文件
+- 建议使用十六进制编辑器（如HxD）查看dump文件内容
 
 ## 配置记忆功能
 

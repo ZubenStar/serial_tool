@@ -159,7 +159,30 @@ class SerialToolGUI:
         self.send_data_var.trace_add('write', self._on_config_change)
         ttk.Button(send_data_frame, text="发送", command=self._send_data).pack(fill=tk.X, pady=2)
         
-        # 活动串口列表 - 移到发送数据区之后
+        # Dump数据控制区 - 新增
+        dump_frame = ttk.LabelFrame(left_panel, text="📦 Dump数据", padding=10)
+        dump_frame.pack(fill=tk.X, pady=5)
+        
+        dump_port_frame = ttk.Frame(dump_frame)
+        dump_port_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(dump_port_frame, text="目标串口:").pack(side=tk.LEFT)
+        self.dump_port_var = tk.StringVar()
+        self.dump_port_combo = ttk.Combobox(dump_port_frame, textvariable=self.dump_port_var, width=12)
+        self.dump_port_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        
+        dump_btn_frame = ttk.Frame(dump_frame)
+        dump_btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(dump_btn_frame, text="▶ 开始Dump", command=self._start_dump).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(dump_btn_frame, text="⏹ 停止Dump", command=self._stop_dump).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        
+        # Dump状态显示
+        self.dump_status_var = tk.StringVar(value="未启动")
+        dump_status_label = ttk.Label(dump_frame, textvariable=self.dump_status_var, foreground="gray", font=("TkDefaultFont", 8))
+        dump_status_label.pack(fill=tk.X, pady=(2, 0))
+        
+        ttk.Label(dump_frame, text="(保存原始二进制数据到dumps目录)", font=("TkDefaultFont", 8), foreground="gray").pack(anchor=tk.W)
+        
+        # 活动串口列表 - 移到dump控制区之后
         active_frame = ttk.LabelFrame(left_panel, text="活动串口", padding=10)
         active_frame.pack(fill=tk.BOTH, expand=True, pady=5)
         
@@ -371,6 +394,11 @@ class SerialToolGUI:
         self.send_port_combo['values'] = active_ports
         if active_ports and not self.send_port_var.get():
             self.send_port_combo.current(0)
+        
+        # 更新dump串口选择
+        self.dump_port_combo['values'] = active_ports
+        if active_ports and not self.dump_port_var.get():
+            self.dump_port_combo.current(0)
     
     def _display_data(self, port, timestamp, data):
         """显示接收到的数据（使用缓冲区批量处理）"""
@@ -465,6 +493,36 @@ class SerialToolGUI:
             self.send_data_var.set("")
         else:
             messagebox.showerror("错误", f"发送失败: {port}")
+    
+    def _start_dump(self):
+        """开始dump数据"""
+        port = self.dump_port_var.get()
+        
+        if not port:
+            messagebox.showwarning("警告", "请选择目标串口")
+            return
+        
+        if self.monitor.start_dump(port):
+            self.dump_status_var.set(f"✓ {port} 正在dump")
+            self.status_var.set(f"已开始dump {port} 的数据")
+            messagebox.showinfo("成功", f"已开始dump串口 {port} 的原始数据\n保存位置: dumps/{port}_*.bin")
+        else:
+            messagebox.showwarning("提示", f"串口 {port} 已在dump中")
+    
+    def _stop_dump(self):
+        """停止dump数据"""
+        port = self.dump_port_var.get()
+        
+        if not port:
+            messagebox.showwarning("警告", "请选择目标串口")
+            return
+        
+        if self.monitor.stop_dump(port):
+            self.dump_status_var.set("未启动")
+            self.status_var.set(f"已停止dump {port}")
+            messagebox.showinfo("成功", f"已停止dump串口 {port} 的数据")
+        else:
+            messagebox.showwarning("提示", f"串口 {port} 未在dump中")
     
     def _add_to_batch(self):
         """将当前配置添加到批量配置列表"""
@@ -680,6 +738,11 @@ class SerialToolGUI:
                 self.stats_display.insert(tk.END, port, "port_name")
                 self.stats_display.insert(tk.END, ": ", "separator")
                 self.stats_display.insert(tk.END, formatted_bytes, "bytes")
+                
+                # 如果正在dump，显示dump信息
+                if 'dumped_bytes' in stats:
+                    dumped = self._format_bytes(stats['dumped_bytes'])
+                    self.stats_display.insert(tk.END, f" (📦{dumped})", "bytes")
                 
                 # 如果不是最后一个，添加分隔符
                 if i < len(sorted_ports) - 1:

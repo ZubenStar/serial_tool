@@ -65,7 +65,10 @@ class SerialMonitor:
                  callback: Optional[Callable] = None,
                  save_all_to_log: bool = True,
                  callback_throttle_ms: int = 10,
-                 enable_color: bool = True):
+                 enable_color: bool = True,
+                 enable_dump: bool = False,
+                 dump_dir: str = "dumps",
+                 dump_marker: str = "[audio dump]"):
         self.port = port
         self.baudrate = baudrate
         self.keywords = keywords or []
@@ -90,11 +93,85 @@ class SerialMonitor:
         self.total_bytes_received = 0  # 接收的总字节数
         self.stats_lock = threading.Lock()  # 统计数据锁
         
+        # 数据dump功能
+        self.enable_dump = enable_dump  # 是否启用数据dump
+        self.dump_dir = Path(dump_dir)
+        self.dump_dir.mkdir(exist_ok=True)
+        self.dump_file = None  # dump文件句柄
+        self.dump_lock = threading.Lock()  # dump文件锁
+        self.dumped_bytes = 0  # 已dump的字节数
+        self.dump_marker = dump_marker  # dump数据标记（如"[audio dump]"）
+        
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         # Replace path separators to create valid filename
         safe_port_name = port.replace('/', '_').replace('\\', '_')
         self.log_file = self.log_dir / f"{safe_port_name}_{timestamp}.log"
         
+        # 初始化dump文件
+        if self.enable_dump:
+            self.dump_file_path = self.dump_dir / f"{safe_port_name}_{timestamp}.bin"
+            self._init_dump_file()
+        
+    def _init_dump_file(self):
+        """初始化dump文件"""
+        try:
+            self.dump_file = open(self.dump_file_path, 'wb')
+            if self.enable_color:
+                print(f"{self.port_color}[{self.port}]{Colors.RESET} Dump文件已创建: {self.dump_file_path}")
+            else:
+                print(f"[{self.port}] Dump文件已创建: {self.dump_file_path}")
+        except Exception as e:
+            if self.enable_color:
+                print(f"{Colors.BRIGHT_RED}创建dump文件失败{Colors.RESET}: {e}")
+            else:
+                print(f"创建dump文件失败: {e}")
+            self.enable_dump = False
+    
+    def start_dump(self):
+        """开始dump数据"""
+        if not self.enable_dump:
+            with self.dump_lock:
+                self.enable_dump = True
+                if not self.dump_file or self.dump_file.closed:
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    safe_port_name = self.port.replace('/', '_').replace('\\', '_')
+                    self.dump_file_path = self.dump_dir / f"{safe_port_name}_{timestamp}.bin"
+                    self._init_dump_file()
+                if self.enable_color:
+                    print(f"{self.port_color}[{self.port}]{Colors.RESET} 已开始dump数据")
+                else:
+                    print(f"[{self.port}] 已开始dump数据")
+                return True
+        return False
+    
+    def stop_dump(self):
+        """停止dump数据"""
+        if self.enable_dump:
+            with self.dump_lock:
+                self.enable_dump = False
+                if self.dump_file and not self.dump_file.closed:
+                    self.dump_file.flush()
+                if self.enable_color:
+                    print(f"{self.port_color}[{self.port}]{Colors.RESET} 已停止dump数据 (共{self.dumped_bytes}字节)")
+                else:
+                    print(f"[{self.port}] 已停止dump数据 (共{self.dumped_bytes}字节)")
+                return True
+        return False
+    
+    def _write_dump(self, raw_data: bytes):
+        """写入原始二进制数据到dump文件"""
+        if self.enable_dump and self.dump_file:
+            try:
+                with self.dump_lock:
+                    self.dump_file.write(raw_data)
+                    self.dump_file.flush()  # 立即刷新到磁盘
+                    self.dumped_bytes += len(raw_data)
+            except Exception as e:
+                if self.enable_color:
+                    print(f"{Colors.BRIGHT_RED}写入dump文件失败{Colors.RESET}: {e}")
+                else:
+                    print(f"写入dump文件失败: {e}")
+    
     def update_filters(self, keywords: Optional[List[str]] = None, regex_patterns: Optional[List[str]] = None):
         """动态更新过滤条件，无需重启串口
         
@@ -151,31 +228,51 @@ class SerialMonitor:
                             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
                             log_entry = f"[{timestamp}] [{self.port}] {line}"
                             
-                            # 始终保存到日志文件（如果启用）
-                            if self.save_all_to_log:
-                                self._write_log(log_entry)
+                            # 检查是否包含dump标记
+                            is_dump_data = self.enable_dump and self.dump_marker in line
                             
-                            # 检查是否匹配过滤条件
-                            if self._matches_filter(line):
-                                # 如果没有启用保存全部日志，则只保存匹配的
-                                if not self.save_all_to_log:
+                            # 如果包含dump标记，dump该行的原始数据
+                            if is_dump_data:
+                                # 找到标记位置，提取标记后的数据
+                                marker_pos = line.find(self.dump_marker)
+                                if marker_pos != -1:
+                                    # 提取标记后的部分（包括二进制数据）
+                                    audio_data_str = line[marker_pos + len(self.dump_marker):]
+                                    # 将字符串转换回字节（保留原始二进制特征）
+                                    try:
+                                        audio_bytes = audio_data_str.encode('utf-8', errors='ignore')
+                                        if audio_bytes:
+                                            self._write_dump(audio_bytes)
+                                    except Exception as e:
+                                        print(f"Dump数据错误: {e}")
+                            
+                            # 包含dump标记的数据不显示在UI上，也不记录到日志
+                            if not is_dump_data:
+                                # 始终保存到日志文件（如果启用）
+                                if self.save_all_to_log:
                                     self._write_log(log_entry)
                                 
-                                # 创建带颜色的日志条目
-                                colored_log_entry = self._format_colored_output(timestamp, line)
-                                
-                                self.data_queue.put({
-                                    'port': self.port,
-                                    'timestamp': timestamp,
-                                    'data': line,
-                                    'log_entry': log_entry,
-                                    'colored_log_entry': colored_log_entry,
-                                    'color': self.port_color
-                                })
-                                
-                                # 只有匹配的数据才触发回调（带节流）
-                                if self.callback:
-                                    self._throttled_callback(self.port, timestamp, line, colored_log_entry)
+                                # 检查是否匹配过滤条件
+                                if self._matches_filter(line):
+                                    # 如果没有启用保存全部日志，则只保存匹配的
+                                    if not self.save_all_to_log:
+                                        self._write_log(log_entry)
+                                    
+                                    # 创建带颜色的日志条目
+                                    colored_log_entry = self._format_colored_output(timestamp, line)
+                                    
+                                    self.data_queue.put({
+                                        'port': self.port,
+                                        'timestamp': timestamp,
+                                        'data': line,
+                                        'log_entry': log_entry,
+                                        'colored_log_entry': colored_log_entry,
+                                        'color': self.port_color
+                                    })
+                                    
+                                    # 只有匹配的数据才触发回调（带节流）
+                                    if self.callback:
+                                        self._throttled_callback(self.port, timestamp, line, colored_log_entry)
                 else:
                     time.sleep(0.01)
                     
@@ -274,6 +371,18 @@ class SerialMonitor:
         with self.callback_lock:
             self._flush_callback_buffer_internal()
         
+        # 关闭dump文件
+        if self.dump_file and not self.dump_file.closed:
+            try:
+                with self.dump_lock:
+                    self.dump_file.close()
+                    if self.enable_color:
+                        print(f"{self.port_color}[{self.port}]{Colors.RESET} Dump文件已关闭 (共{self.dumped_bytes}字节)")
+                    else:
+                        print(f"[{self.port}] Dump文件已关闭 (共{self.dumped_bytes}字节)")
+            except Exception as e:
+                print(f"关闭dump文件错误: {e}")
+        
         if self.serial_conn and self.serial_conn.is_open:
             self.serial_conn.close()
         
@@ -300,10 +409,14 @@ class SerialMonitor:
     def get_stats(self) -> Dict:
         """获取统计信息"""
         with self.stats_lock:
-            return {
+            stats = {
                 'total_bytes': self.total_bytes_received,
                 'port': self.port
             }
+            if self.enable_dump:
+                stats['dumped_bytes'] = self.dumped_bytes
+                stats['dump_file'] = str(self.dump_file_path)
+            return stats
 
 
 class MultiSerialMonitor:
@@ -439,6 +552,32 @@ class MultiSerialMonitor:
         """向指定串口发送数据"""
         if port in self.monitors:
             return self.monitors[port].send(data)
+        return False
+    
+    def start_dump(self, port: str) -> bool:
+        """开始dump指定串口的数据
+        
+        Args:
+            port: 串口名称
+            
+        Returns:
+            bool: 是否成功开始dump
+        """
+        if port in self.monitors:
+            return self.monitors[port].start_dump()
+        return False
+    
+    def stop_dump(self, port: str) -> bool:
+        """停止dump指定串口的数据
+        
+        Args:
+            port: 串口名称
+            
+        Returns:
+            bool: 是否成功停止dump
+        """
+        if port in self.monitors:
+            return self.monitors[port].stop_dump()
         return False
     
     def stop_all(self):
