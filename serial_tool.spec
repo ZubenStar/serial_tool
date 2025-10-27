@@ -1,7 +1,50 @@
 # -*- mode: python ; coding: utf-8 -*-
 import os
+from PyInstaller.utils.win32.versioninfo import (
+    VSVersionInfo, FixedFileInfo, StringFileInfo, StringTable,
+    StringStruct, VarFileInfo, VarStruct
+)
 
 block_cipher = None
+
+# 读取版本号
+with open('VERSION', 'r', encoding='utf-8') as f:
+    version_str = f.read().strip()
+
+# 将版本号转换为四位数字格式 (例如: 1.7.1 -> 1.7.1.0)
+version_parts = version_str.split('.')
+while len(version_parts) < 4:
+    version_parts.append('0')
+version_tuple = tuple(int(x) for x in version_parts[:4])
+
+# Windows版本信息
+version_info = VSVersionInfo(
+    ffi=FixedFileInfo(
+        filevers=version_tuple,
+        prodvers=version_tuple,
+        mask=0x3f,
+        flags=0x0,
+        OS=0x40004,
+        fileType=0x1,
+        subtype=0x0,
+        date=(0, 0)
+    ),
+    kids=[
+        StringFileInfo([
+            StringTable('040904B0', [
+                StringStruct('CompanyName', 'Serial Tool Development'),
+                StringStruct('FileDescription', 'Serial Monitor Tool - 串口监控工具'),
+                StringStruct('FileVersion', version_str),
+                StringStruct('InternalName', 'SerialMonitorTool'),
+                StringStruct('LegalCopyright', '© 2025 Serial Tool Development Team'),
+                StringStruct('OriginalFilename', 'SerialMonitorTool.exe'),
+                StringStruct('ProductName', 'Serial Monitor Tool'),
+                StringStruct('ProductVersion', version_str),
+            ])
+        ]),
+        VarFileInfo([VarStruct('Translation', [1033, 1200])])
+    ]
+)
 
 a = Analysis(
     ['gui_app.py'],
@@ -49,4 +92,6 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    version=version_info,
+    icon=None,
 )
