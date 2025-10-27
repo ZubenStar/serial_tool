@@ -69,33 +69,43 @@ jobs:
         echo "VERSION=$version" >> $env:GITHUB_OUTPUT
       shell: pwsh
         
+    - name: Generate Release Notes
+      id: release_notes
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { data } = await github.rest.repos.generateReleaseNotes({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            tag_name: context.ref.replace('refs/tags/', ''),
+          });
+          
+          const header = `## 📦 串口监控工具 ${context.ref.replace('refs/tags/', '')}
+
+          ### 📥 快速开始
+          1. 下载 **SerialMonitorTool-Windows-x64.zip**
+          2. 解压到任意目录
+          3. 双击运行 **串口监控工具.exe**
+
+          ### 💻 系统要求
+          - Windows 7/8/10/11 (64位)
+          - 无需安装Python或其他依赖
+
+          ---
+
+          `;
+          
+          return header + data.body;
+        result-encoding: string
+        
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
       with:
         files: SerialMonitorTool-Windows-x64.zip
-        name: Release ${{ steps.get_version.outputs.VERSION }}
-        body: |
-          ## 串口监控工具 ${{ steps.get_version.outputs.VERSION }}
-          
-          ### 功能特性
-          - ✅ 多串口同时监控
-          - ✅ 关键词和正则表达式过滤
-          - ✅ 自动保存配置
-          - ✅ 实时数据显示和日志保存
-          - ✅ 串口数据发送功能
-          
-          ### 使用方法
-          1. 下载 `SerialMonitorTool-Windows-x64.zip`
-          2. 解压缩到任意目录
-          3. 双击运行 `串口监控工具.exe`
-          
-          ### 系统要求
-          - Windows 7/10/11 (64位)
-          - 无需安装Python或其他依赖
-          
-          ### 更新内容
-          请查看下方的提交记录
+        name: 串口监控工具 ${{ steps.get_version.outputs.VERSION }}
+        body: ${{ steps.release_notes.outputs.result }}
         draft: false
         prerelease: false
       env:

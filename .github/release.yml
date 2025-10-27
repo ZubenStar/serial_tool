@@ -1,0 +1,49 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+      - duplicate
+      - question
+      - invalid
+      - wontfix
+    authors:
+      - dependabot
+  categories:
+    - title: 🚀 新增功能 / New Features
+      labels:
+        - feature
+        - enhancement
+        - new
+    - title: 🐛 Bug修复 / Bug Fixes
+      labels:
+        - bug
+        - fix
+        - bugfix
+    - title: 📝 文档更新 / Documentation
+      labels:
+        - documentation
+        - docs
+    - title: 🔧 性能优化 / Performance
+      labels:
+        - performance
+        - optimization
+    - title: 🎨 界面改进 / UI/UX
+      labels:
+        - ui
+        - ux
+        - style
+    - title: ♻️ 代码重构 / Refactoring
+      labels:
+        - refactor
+        - refactoring
+    - title: 🧪 测试相关 / Testing
+      labels:
+        - test
+        - testing
+    - title: 🔒 安全更新 / Security
+      labels:
+        - security
+    - title: 🛠️ 其他变更 / Other Changes
+      labels:
+        - "*"
