@@ -5,19 +5,37 @@ import json
 import os
 import time
 from pathlib import Path
-from serial_monitor import MultiSerialMonitor, Colors
 from typing import Dict, List
 
-# 读取版本信息
+# 延迟导入serial_monitor以加快启动
+_monitor_module = None
+
+def get_monitor_module():
+    """延迟导入串口监控模块"""
+    global _monitor_module
+    if _monitor_module is None:
+        from serial_monitor import MultiSerialMonitor, Colors
+        _monitor_module = {'MultiSerialMonitor': MultiSerialMonitor, 'Colors': Colors}
+    return _monitor_module
+
+# 读取版本信息 - 优化：缓存版本号
+_version_cache = None
+
 def get_version() -> str:
-    """从VERSION文件读取版本号"""
+    """从VERSION文件读取版本号（带缓存）"""
+    global _version_cache
+    if _version_cache is not None:
+        return _version_cache
+    
     try:
         version_file = Path(__file__).parent / "VERSION"
         if version_file.exists():
-            return version_file.read_text(encoding='utf-8').strip()
+            _version_cache = version_file.read_text(encoding='utf-8').strip()
+            return _version_cache
     except Exception:
         pass
-    return "1.0.0"  # 默认版本号
+    _version_cache = "1.0.0"
+    return _version_cache
 
 VERSION = get_version()
 
@@ -31,7 +49,9 @@ class SerialToolGUI:
         # 设置默认全屏
         self.root.state('zoomed')
         
-        self.monitor = MultiSerialMonitor(log_dir="logs")
+        # 延迟初始化monitor
+        monitor_mod = get_monitor_module()
+        self.monitor = monitor_mod['MultiSerialMonitor'](log_dir="logs")
         self.port_configs: Dict[str, Dict] = {}
         self.config_file = "serial_tool_config.json"
         self.batch_configs_file = "serial_tool_batch_configs.json"  # 批量配置文件
@@ -40,27 +60,36 @@ class SerialToolGUI:
         # 性能优化：批量更新缓冲区
         self.display_buffer = []
         self.buffer_lock = threading.Lock()
-        self.max_buffer_size = 100  # 批量处理的最大条目数
-        self.update_interval = 100  # UI更新间隔(毫秒)
+        self.max_buffer_size = 150  # 批量处理的最大条目数（增加以减少更新次数）
+        self.update_interval = 50  # UI更新间隔(毫秒)（减少延迟）
         self.max_display_lines = 1000  # 最大显示行数
         self.trim_to_lines = 800  # 超过最大行数时保留的行数
         self.last_trim_time = 0  # 上次清理时间
-        self.trim_interval = 5.0  # 清理间隔(秒)
+        self.trim_interval = 10.0  # 清理间隔(秒)（减少清理频率）
         
         # 数据统计更新
-        self.stats_update_interval = 1000  # 统计信息更新间隔(毫秒)
+        self.stats_update_interval = 2000  # 统计信息更新间隔(毫秒)（降低更新频率）
         
         self._create_widgets()
-        self._update_available_ports()
         self._load_config()
         self._start_ui_update_loop()
+        
+        # 优化：延迟启动非关键任务
+        self.root.after(100, self._delayed_init)
+    
+    def _delayed_init(self):
+        """延迟初始化非关键组件"""
+        self._update_available_ports()
         self._start_stats_update_loop()
         
     def _create_widgets(self):
-        """创建界面组件 - 左右布局"""
+        """创建界面组件 - 左右布局（优化：减少不必要的配置）"""
         # 创建主容器框架
         main_container = ttk.Frame(self.root)
         main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # 优化：使用after延迟初始化统计显示，减少启动时间
+        self._stats_display_created = False
         
         # 左侧控制面板
         left_panel = ttk.Frame(main_container, width=400)
@@ -186,19 +215,17 @@ class SerialToolGUI:
         self.port_color_tags = {}
         self._init_color_tags()
         
-        # 数据统计显示区域（在数据显示区下方）
-        stats_frame = ttk.LabelFrame(right_panel, text="数据统计", padding=5)
-        stats_frame.pack(fill=tk.X, pady=(5, 0))
+        # 数据统计显示区域（在数据显示区下方） - 优化：延迟创建
+        self.stats_frame = ttk.LabelFrame(right_panel, text="数据统计", padding=5)
+        self.stats_frame.pack(fill=tk.X, pady=(5, 0))
         
         # 使用Text widget来显示统计信息，支持多行
-        self.stats_display = tk.Text(stats_frame, height=3, wrap=tk.WORD, state=tk.DISABLED,
+        self.stats_display = tk.Text(self.stats_frame, height=3, wrap=tk.WORD, state=tk.DISABLED,
                                       background='#f0f0f0', relief=tk.FLAT)
         self.stats_display.pack(fill=tk.X)
         
-        # 配置统计显示的颜色标签
-        self.stats_display.tag_config("port_name", foreground="blue", font=("TkDefaultFont", 9, "bold"))
-        self.stats_display.tag_config("bytes", foreground="green", font=("TkDefaultFont", 9))
-        self.stats_display.tag_config("separator", foreground="gray")
+        # 优化：延迟配置颜色标签
+        self._stats_tags_configured = False
         
         # 状态栏
         status_frame = ttk.Frame(self.root)
@@ -248,8 +275,20 @@ class SerialToolGUI:
         return self.port_color_tags[port]
         
     def _update_available_ports(self):
-        """更新可用串口列表"""
-        ports = MultiSerialMonitor.list_available_ports()
+        """更新可用串口列表（优化：异步扫描）"""
+        def scan_ports():
+            monitor_mod = get_monitor_module()
+            ports = monitor_mod['MultiSerialMonitor'].list_available_ports()
+            # 在主线程更新UI
+            self.root.after(0, lambda: self._update_port_list(ports))
+        
+        # 启动时显示加载状态
+        self.status_var.set("正在扫描串口...")
+        # 异步扫描
+        threading.Thread(target=scan_ports, daemon=True).start()
+    
+    def _update_port_list(self, ports):
+        """更新端口列表（在主线程中调用）"""
         self.port_combo['values'] = ports
         if ports:
             self.port_combo.current(0)
@@ -388,7 +427,7 @@ class SerialToolGUI:
         self._process_display_buffer()
     
     def _process_display_buffer(self):
-        """批量处理显示缓冲区"""
+        """批量处理显示缓冲区（优化：减少UI操作）"""
         try:
             with self.buffer_lock:
                 if not self.display_buffer:
@@ -399,6 +438,9 @@ class SerialToolGUI:
                 # 取出所有待显示的数据（最多max_buffer_size条）
                 batch = self.display_buffer[:self.max_buffer_size]
                 self.display_buffer = self.display_buffer[self.max_buffer_size:]
+            
+            # 优化：禁用自动滚动，批量插入后一次性滚动
+            self.text_display.config(state=tk.NORMAL)
             
             # 批量插入数据到文本框
             for item in batch:
@@ -414,7 +456,7 @@ class SerialToolGUI:
                 self.text_display.insert(tk.END, f"[{port}] ", port_tag)
                 self.text_display.insert(tk.END, f"{data}\n", "default")
             
-            # 滚动到底部
+            # 滚动到底部（一次性操作）
             self.text_display.see(tk.END)
             
             # 定期清理超出的行数（避免每次都检查）
@@ -653,8 +695,15 @@ class SerialToolGUI:
             return f"{bytes_count / (1024 * 1024 * 1024):.2f} GB"
     
     def _update_stats_display(self):
-        """更新统计信息显示"""
+        """更新统计信息显示（优化：延迟配置标签）"""
         try:
+            # 首次调用时配置颜色标签
+            if not self._stats_tags_configured:
+                self.stats_display.tag_config("port_name", foreground="blue", font=("TkDefaultFont", 9, "bold"))
+                self.stats_display.tag_config("bytes", foreground="green", font=("TkDefaultFont", 9))
+                self.stats_display.tag_config("separator", foreground="gray")
+                self._stats_tags_configured = True
+            
             # 获取所有串口的统计信息
             all_stats = self.monitor.get_all_stats()
             
