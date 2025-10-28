@@ -57,16 +57,12 @@ class SerialToolGUI:
         self.batch_configs_file = "serial_tool_batch_configs.json"  # 批量配置文件
         self.batch_port_configs: List[Dict] = []  # 批量串口配置列表
         
-        # 性能优化：批量更新缓冲区 - 自适应策略 + 超时强制刷新
+        # 性能优化：批量更新缓冲区 - 激进的实时显示策略
         self.display_buffer = []
         self.buffer_lock = threading.Lock()
-        self.max_buffer_size = 100  # 批量处理的最大条目数（平衡性能与实时性）
-        self.update_interval = 30  # UI更新间隔(毫秒)（平衡刷新频率）
-        self.min_update_interval = 16  # 最小更新间隔(约60fps)
-        self.max_update_interval = 100  # 最大更新间隔
-        self.adaptive_threshold = 20  # 缓冲区低于此值时加速刷新
-        self.buffer_timeout = 500  # 缓冲区超时时间(毫秒)，超时强制刷新
-        self.last_buffer_update = time.time()  # 上次缓冲区更新时间
+        self.max_buffer_size = 100  # 批量处理的最大条目数
+        self.update_interval = 10  # UI更新间隔(毫秒) - 非常快的轮询
+        self.batch_threshold = 50  # 超过此值才批量处理
         self.max_display_lines = 1000  # 最大显示行数
         self.trim_to_lines = 800  # 超过最大行数时保留的行数
         self.last_trim_time = 0  # 上次清理时间
@@ -426,56 +422,31 @@ class SerialToolGUI:
                 'timestamp': timestamp,
                 'data': data
             })
-            # 更新缓冲区时间戳
-            self.last_buffer_update = time.time()
     
     def _start_ui_update_loop(self):
         """启动UI更新循环"""
         self._process_display_buffer()
     
     def _process_display_buffer(self):
-        """批量处理显示缓冲区（自适应策略 + 超时强制刷新）"""
+        """批量处理显示缓冲区（激进策略：只要有数据就显示）"""
         try:
             with self.buffer_lock:
                 buffer_size = len(self.display_buffer)
-                current_time = time.time()
-                time_since_last_update = (current_time - self.last_buffer_update) * 1000  # 转换为毫秒
                 
                 if buffer_size == 0:
-                    # 缓冲区为空，使用标准间隔
+                    # 缓冲区为空，快速轮询
                     self.root.after(self.update_interval, self._process_display_buffer)
                     return
                 
-                # 检查是否超时：即使数据少也要强制刷新（解决筛选模式下数据积压问题）
-                is_timeout = time_since_last_update >= self.buffer_timeout
-                
-                # 自适应策略：缓冲区数据少时快速刷新，数据多时批量处理，超时强制刷新
-                if buffer_size < self.adaptive_threshold:
-                    # 数据少，立即显示（实时性优先）
-                    batch = self.display_buffer[:buffer_size]
-                    self.display_buffer = []
-                    next_interval = self.min_update_interval
-                elif buffer_size < self.max_buffer_size and not is_timeout:
-                    # 中等数据量且未超时，继续等待积累更多数据
-                    if buffer_size < 5:
-                        # 数据太少，等待一下
-                        self.root.after(self.update_interval, self._process_display_buffer)
-                        return
-                    # 取所有数据
-                    batch = self.display_buffer[:buffer_size]
-                    self.display_buffer = []
-                    next_interval = self.update_interval
+                # 激进策略：只要有数据就全部显示，除非数据量特别大才分批
+                if buffer_size >= self.batch_threshold:
+                    # 数据量大：分批处理防止UI卡顿
+                    batch = self.display_buffer[:self.batch_threshold]
+                    self.display_buffer = self.display_buffer[self.batch_threshold:]
                 else:
-                    # 数据量大或超时，批量处理（性能优先或强制刷新）
-                    if is_timeout:
-                        # 超时强制刷新所有数据
-                        batch = self.display_buffer[:buffer_size]
-                        self.display_buffer = []
-                    else:
-                        # 数据量大，批量处理
-                        batch = self.display_buffer[:self.max_buffer_size]
-                        self.display_buffer = self.display_buffer[self.max_buffer_size:]
-                    next_interval = self.min_update_interval  # 加速处理积压
+                    # 所有其他情况：立即全部显示
+                    batch = self.display_buffer[:buffer_size]
+                    self.display_buffer = []
             
             # 优化：禁用自动滚动，批量插入后一次性滚动
             self.text_display.config(state=tk.NORMAL)
@@ -505,10 +476,9 @@ class SerialToolGUI:
             
         except Exception as e:
             print(f"处理显示缓冲区错误: {e}")
-            next_interval = self.update_interval
         
-        # 继续循环（使用动态间隔）
-        self.root.after(next_interval, self._process_display_buffer)
+        # 继续快速循环
+        self.root.after(self.update_interval, self._process_display_buffer)
     
     def _trim_display_lines(self):
         """清理超出的显示行数"""

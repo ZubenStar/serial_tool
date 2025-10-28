@@ -64,7 +64,7 @@ class SerialMonitor:
                  log_dir: str = "logs",
                  callback: Optional[Callable] = None,
                  save_all_to_log: bool = True,
-                 callback_throttle_ms: int = 10,
+                 callback_throttle_ms: int = 1,
                  enable_color: bool = True):
         self.port = port
         self.baudrate = baudrate
@@ -202,17 +202,13 @@ class SerialMonitor:
             return f"[{timestamp}] [{self.port}] {data}"
     
     def _throttled_callback(self, port: str, timestamp: str, data: str, colored_log_entry: str = ""):
-        """节流的回调函数"""
-        current_time = time.time() * 1000  # 转换为毫秒
-        
-        with self.callback_lock:
-            self.callback_buffer.append((port, timestamp, data, colored_log_entry))
-            
-            # 检查是否到达节流时间或缓冲区已满
-            if (current_time - self.last_callback_time >= self.callback_throttle_ms or
-                len(self.callback_buffer) >= 10):  # 缓冲区达到10条就立即刷新
-                self._flush_callback_buffer_internal()
-                self.last_callback_time = current_time
+        """立即回调函数（移除节流以确保实时性）"""
+        # 直接调用callback，不再使用缓冲区和节流
+        if self.callback:
+            try:
+                self.callback(port, timestamp, data, colored_log_entry)
+            except Exception as e:
+                print(f"回调函数错误: {e}")
     
     def _flush_callback_buffer_internal(self):
         """内部刷新回调缓冲区（需要持有锁）"""
@@ -319,7 +315,7 @@ class MultiSerialMonitor:
                    regex_patterns: Optional[List[str]] = None,
                    callback: Optional[Callable] = None,
                    save_all_to_log: bool = True,
-                   callback_throttle_ms: int = 10,
+                   callback_throttle_ms: int = 1,
                    enable_color: bool = True) -> bool:
         """添加串口监控
         
@@ -330,7 +326,7 @@ class MultiSerialMonitor:
             regex_patterns: 正则表达式列表（用于过滤显示）
             callback: 回调函数（只在数据匹配过滤条件时调用）
             save_all_to_log: 是否将所有数据保存到日志（默认True，即使有过滤条件也保存全部数据）
-            callback_throttle_ms: 回调节流时间（毫秒），默认10ms
+            callback_throttle_ms: 回调节流时间（毫秒），默认1ms
             enable_color: 是否启用颜色输出（默认True）
         """
         if port in self.monitors:
@@ -369,7 +365,7 @@ class MultiSerialMonitor:
                 - regex_patterns: 正则表达式列表 (可选)
                 - callback: 回调函数 (可选)
                 - save_all_to_log: 是否保存所有数据 (可选，默认True)
-                - callback_throttle_ms: 回调节流时间 (可选，默认10)
+                - callback_throttle_ms: 回调节流时间 (可选，默认1)
                 - enable_color: 是否启用颜色 (可选，默认True)
         
         Returns:
