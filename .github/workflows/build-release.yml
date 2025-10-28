@@ -28,6 +28,16 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
     
+    - name: Run unit tests
+      run: |
+        python test_serial.py
+      continue-on-error: false
+    
+    - name: Run performance tests
+      run: |
+        python test_performance.py
+      continue-on-error: false
+    
     - name: Create logs directory for packaging
       run: |
         New-Item -ItemType Directory -Force -Path logs

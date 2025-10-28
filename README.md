@@ -167,6 +167,53 @@ python cli_app.py --ports COM1 COM2 \
 | `--log-dir` | `-l` | 日志目录（默认logs） | `./my_logs` |
 | `--list-ports` | - | 列出可用串口 | - |
 
+## 自动化测试
+
+项目包含完整的自动化测试套件，确保代码质量和性能：
+
+### 测试类型
+
+1. **单元测试** ([`test_serial.py`](test_serial.py))
+   - 测试串口监控核心功能
+   - 测试过滤条件（关键词、正则表达式）
+   - 测试多串口管理
+   - 测试回调机制
+
+2. **性能测试** ([`test_performance.py`](test_performance.py))
+   - ✅ 大数据量测试：5000条/5秒，验证GUI不卡顿
+   - ✅ 实时筛选测试：1000条数据，10%匹配率
+   - ✅ 延迟测试：端到端延迟<100ms
+   - ✅ 动态过滤更新：实时生效验证
+   - ✅ 并行启动性能：10个串口<2秒
+
+### 运行测试
+
+```bash
+# 运行单元测试
+python test_serial.py
+
+# 运行性能测试
+python test_performance.py
+
+# 运行所有测试
+python test_serial.py && python test_performance.py
+```
+
+### CI/CD集成
+
+项目配置了GitHub Actions自动化流程：
+- ✅ 每次构建前自动运行所有测试
+- ✅ 测试通过后才打包exe
+- ✅ 确保发布版本的质量和性能
+
+**构建流程：**
+1. 运行单元测试（test_serial.py）
+2. 运行性能测试（test_performance.py）
+3. 测试全部通过后打包exe
+4. 创建Release并上传
+
+这确保了每个发布版本都经过严格的性能验证！
+
 ## 项目结构
 
 ```
@@ -177,6 +224,8 @@ serial_tool/
 ├── serial_monitor.py             # 核心串口监控类
 ├── gui_app.py                   # 图形界面应用
 ├── cli_app.py                   # 命令行应用
+├── test_serial.py               # 单元测试
+├── test_performance.py          # 性能测试
 ├── build_exe.py                 # 本地打包脚本
 ├── requirements.txt             # 依赖包
 ├── README.md                    # 说明文档
