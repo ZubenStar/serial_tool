@@ -198,8 +198,16 @@ class TestIntegration(unittest.TestCase):
 
 def run_tests():
     """运行所有测试"""
+    import sys
+    import io
+    
+    # 在Windows CI环境中设置UTF-8编码
+    if sys.platform == 'win32':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    
     print("=" * 60)
-    print("运行串口监控工具测试")
+    print("Running Serial Monitor Tool Tests")
     print("=" * 60)
     
     # 创建测试套件

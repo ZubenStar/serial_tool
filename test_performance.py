@@ -452,15 +452,23 @@ class TestMultiPortPerformance(unittest.TestCase):
 
 def run_performance_tests():
     """运行性能测试套件"""
+    import sys
+    import io
+    
+    # 在Windows CI环境中设置UTF-8编码
+    if sys.platform == 'win32':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+    
     print("=" * 70)
-    print("串口监控工具 - 性能和实时性自动化测试")
+    print("Serial Monitor Tool - Performance and Real-time Tests")
     print("=" * 70)
-    print("\n本测试将验证以下性能指标：")
-    print("1. 大数据量处理能力（5000条/5秒）")
-    print("2. 实时筛选性能（1000条，10%匹配）")
-    print("3. 端到端延迟（<100ms）")
-    print("4. 动态过滤更新实时性")
-    print("5. 批量并行启动性能（10个串口<2秒）")
+    print("\nTest Scenarios:")
+    print("1. Large data volume (5000 msgs/5s)")
+    print("2. Real-time filtering (1000 msgs, 10% match)")
+    print("3. End-to-end latency (<100ms)")
+    print("4. Dynamic filter update")
+    print("5. Parallel startup (10 ports <2s)")
     print("\n" + "=" * 70 + "\n")
     
     # 创建测试套件
@@ -477,17 +485,17 @@ def run_performance_tests():
     
     # 输出结果摘要
     print("\n" + "=" * 70)
-    print("测试结果摘要")
+    print("Test Summary")
     print("=" * 70)
-    print(f"总测试数: {result.testsRun}")
-    print(f"✓ 成功: {result.testsRun - len(result.failures) - len(result.errors)}")
-    print(f"✗ 失败: {len(result.failures)}")
-    print(f"✗ 错误: {len(result.errors)}")
+    print(f"Total tests: {result.testsRun}")
+    print(f"Success: {result.testsRun - len(result.failures) - len(result.errors)}")
+    print(f"Failures: {len(result.failures)}")
+    print(f"Errors: {len(result.errors)}")
     
     if result.wasSuccessful():
-        print("\n🎉 所有性能测试通过！系统性能符合要求。")
+        print("\nAll performance tests passed! System performance meets requirements.")
     else:
-        print("\n⚠️  部分测试失败，请检查性能问题。")
+        print("\nSome tests failed. Please check performance issues.")
     
     print("=" * 70)
     
