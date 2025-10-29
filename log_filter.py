@@ -52,7 +52,9 @@ class LogFilterWindow:
         self.keyword_var = tk.StringVar()
         self.keyword_entry = ttk.Entry(keyword_frame, textvariable=self.keyword_var)
         self.keyword_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        self.keyword_entry.bind('<Return>', lambda e: self._apply_filter())
+        self.keyword_entry.bind('<Return>', lambda e: self._search_keyword())
+        # 添加查询按钮
+        ttk.Button(keyword_frame, text="查询", command=self._search_keyword, width=8).pack(side=tk.LEFT, padx=2)
         
         # 过滤选项
         options_frame = ttk.Frame(filter_frame)
@@ -73,7 +75,6 @@ class LogFilterWindow:
         # 过滤按钮
         btn_frame = ttk.Frame(filter_frame)
         btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame, text="应用过滤", command=self._apply_filter).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_frame, text="显示全部", command=self._show_all).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_frame, text="导出结果", command=self._export_results).pack(side=tk.LEFT, padx=2)
         
@@ -194,8 +195,8 @@ class LogFilterWindow:
         else:
             messagebox.showinfo("提示", "没有打开的文件")
     
-    def _apply_filter(self):
-        """应用过滤条件"""
+    def _search_keyword(self):
+        """查询关键词"""
         if not self.all_lines:
             messagebox.showinfo("提示", "请先打开一个文件")
             return
