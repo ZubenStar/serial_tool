@@ -6,6 +6,7 @@ import os
 import time
 from pathlib import Path
 from typing import Dict, List
+from log_filter import LogFilterWindow
 
 # 延迟导入serial_monitor以加快启动
 _monitor_module = None
@@ -159,6 +160,11 @@ class SerialToolGUI:
         btn_frame2.pack(fill=tk.X, pady=2)
         ttk.Button(btn_frame2, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(btn_frame2, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        
+        # 日志过滤工具按钮
+        log_filter_frame = ttk.Frame(control_frame)
+        log_filter_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(log_filter_frame, text="📄 日志过滤工具", command=self._open_log_filter).pack(fill=tk.X)
         
         # 批量操作区
         batch_frame = ttk.LabelFrame(left_panel, text="批量操作", padding=10)
@@ -754,6 +760,15 @@ class SerialToolGUI:
         """启动统计信息更新循环"""
         self._update_stats_display()
         self.root.after(self.stats_update_interval, self._start_stats_update_loop)
+    
+    def _open_log_filter(self):
+        """打开日志过滤工具"""
+        try:
+            # 传递应用的日志目录到日志过滤窗口
+            LogFilterWindow(self.root, log_dir=self.monitor.log_dir)
+            self.status_var.set("已打开日志过滤工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开日志过滤工具: {str(e)}")
     
     def close(self):
         """关闭应用"""
