@@ -24,6 +24,10 @@ class LogFilterWindow:
         self.filtered_lines = []  # 存储过滤后的行
         self.log_dir = log_dir  # 应用生成的日志目录
         
+        # 查询功能状态
+        self.search_matches = []  # 存储所有匹配位置 [(line_index, start, end), ...]
+        self.current_match_index = -1  # 当前匹配位置索引
+        
         self._create_widgets()
         
     def _create_widgets(self):
@@ -52,9 +56,9 @@ class LogFilterWindow:
         self.keyword_var = tk.StringVar()
         self.keyword_entry = ttk.Entry(keyword_frame, textvariable=self.keyword_var)
         self.keyword_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
-        self.keyword_entry.bind('<Return>', lambda e: self._search_keyword())
-        # 添加查询按钮
-        ttk.Button(keyword_frame, text="查询", command=self._search_keyword, width=8).pack(side=tk.LEFT, padx=2)
+        self.keyword_entry.bind('<Return>', lambda e: self._find_next())
+        # 添加查询按钮 - 逐个查找
+        ttk.Button(keyword_frame, text="查询", command=self._find_next, width=8).pack(side=tk.LEFT, padx=2)
         
         # 过滤选项
         options_frame = ttk.Frame(filter_frame)
@@ -75,6 +79,7 @@ class LogFilterWindow:
         # 过滤按钮
         btn_frame = ttk.Frame(filter_frame)
         btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(btn_frame, text="应用过滤", command=self._apply_filter).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_frame, text="显示全部", command=self._show_all).pack(side=tk.LEFT, padx=2)
         ttk.Button(btn_frame, text="导出结果", command=self._export_results).pack(side=tk.LEFT, padx=2)
         
@@ -102,6 +107,7 @@ class LogFilterWindow:
         
         # 配置颜色标签
         self.text_display.tag_config("highlight", background="yellow")
+        self.text_display.tag_config("current_match", background="orange")  # 当前匹配项用橙色
         self.text_display.tag_config("line_num", foreground="gray")
         
         # 同步滚动
@@ -195,8 +201,95 @@ class LogFilterWindow:
         else:
             messagebox.showinfo("提示", "没有打开的文件")
     
-    def _search_keyword(self):
-        """查询关键词"""
+    def _find_next(self):
+        """查找下一个匹配项（逐个查找）"""
+        if not self.all_lines:
+            messagebox.showinfo("提示", "请先打开一个文件")
+            return
+        
+        keyword = self.keyword_var.get().strip()
+        if not keyword:
+            messagebox.showinfo("提示", "请输入关键词")
+            return
+        
+        # 如果是新的搜索，重新查找所有匹配
+        if self.current_match_index == -1 or len(self.search_matches) == 0:
+            self._build_search_matches(keyword)
+        
+        if not self.search_matches:
+            messagebox.showinfo("查询", "未找到匹配项")
+            self.status_var.set("未找到匹配项")
+            return
+        
+        # 移动到下一个匹配
+        self.current_match_index = (self.current_match_index + 1) % len(self.search_matches)
+        self._highlight_current_match()
+        
+        # 更新状态
+        total = len(self.search_matches)
+        current = self.current_match_index + 1
+        self.status_var.set(f"匹配 {current}/{total}")
+    
+    def _build_search_matches(self, keyword: str):
+        """构建所有匹配位置列表"""
+        self.search_matches = []
+        self.current_match_index = -1
+        
+        try:
+            if self.use_regex_var.get():
+                # 使用正则表达式
+                flags = 0 if self.case_sensitive_var.get() else re.IGNORECASE
+                pattern = re.compile(keyword, flags)
+                
+                for line_idx, line in enumerate(self.all_lines):
+                    for match in pattern.finditer(line):
+                        self.search_matches.append((line_idx, match.start(), match.end()))
+            else:
+                # 普通文本匹配
+                search_keyword = keyword if self.case_sensitive_var.get() else keyword.lower()
+                
+                for line_idx, line in enumerate(self.all_lines):
+                    search_line = line if self.case_sensitive_var.get() else line.lower()
+                    start = 0
+                    while True:
+                        pos = search_line.find(search_keyword, start)
+                        if pos == -1:
+                            break
+                        self.search_matches.append((line_idx, pos, pos + len(keyword)))
+                        start = pos + 1
+        except re.error as e:
+            messagebox.showerror("正则表达式错误", f"正则表达式语法错误: {str(e)}")
+            self.search_matches = []
+    
+    def _highlight_current_match(self):
+        """高亮显示当前匹配项"""
+        if not self.search_matches or self.current_match_index < 0:
+            return
+        
+        line_idx, start, end = self.search_matches[self.current_match_index]
+        
+        # 启用编辑以便添加标签
+        self.text_display.config(state=tk.NORMAL)
+        
+        # 清除之前的高亮
+        self.text_display.tag_remove("current_match", "1.0", tk.END)
+        
+        # 计算文本框中的位置（行号从1开始）
+        text_line = line_idx + 1
+        start_pos = f"{text_line}.{start}"
+        end_pos = f"{text_line}.{end}"
+        
+        # 添加当前匹配高亮
+        self.text_display.tag_add("current_match", start_pos, end_pos)
+        
+        # 滚动到当前匹配位置
+        self.text_display.see(start_pos)
+        
+        # 禁用编辑
+        self.text_display.config(state=tk.DISABLED)
+    
+    def _apply_filter(self):
+        """应用过滤条件（全局过滤）"""
         if not self.all_lines:
             messagebox.showinfo("提示", "请先打开一个文件")
             return
@@ -226,6 +319,10 @@ class LogFilterWindow:
             self._update_stats()
             
             self.status_var.set(f"过滤完成: 找到 {len(self.filtered_lines)} 行")
+            
+            # 重置查询状态
+            self.search_matches = []
+            self.current_match_index = -1
             
         except re.error as e:
             messagebox.showerror("正则表达式错误", f"正则表达式语法错误: {str(e)}")
@@ -275,6 +372,10 @@ class LogFilterWindow:
         self._display_lines(self.filtered_lines)
         self._update_stats()
         self.status_var.set(f"显示全部 {len(self.all_lines)} 行")
+        
+        # 重置查询状态
+        self.search_matches = []
+        self.current_match_index = -1
     
     def _display_lines(self, lines: List[tuple], highlight_keyword: str = None):
         """
