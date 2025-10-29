@@ -293,10 +293,14 @@ class LogFilterWindow:
             # 插入行号
             self.line_numbers.insert(tk.END, f"{line_num}\n")
             
-            # 插入内容
-            if highlight_keyword and not self.use_regex_var.get():
-                # 高亮关键词
-                self._insert_with_highlight(content, highlight_keyword)
+            # 插入内容并高亮
+            if highlight_keyword:
+                if self.use_regex_var.get():
+                    # 使用正则表达式高亮
+                    self._insert_with_regex_highlight(content, highlight_keyword)
+                else:
+                    # 普通文本高亮
+                    self._insert_with_highlight(content, highlight_keyword)
             else:
                 self.text_display.insert(tk.END, content + '\n')
         
@@ -331,6 +335,46 @@ class LogFilterWindow:
         
         # 插入剩余文本
         self.text_display.insert(tk.END, text[last_end:] + '\n')
+    
+    def _insert_with_regex_highlight(self, text: str, pattern: str):
+        """使用正则表达式插入文本并高亮匹配部分"""
+        if not pattern:
+            self.text_display.insert(tk.END, text + '\n')
+            return
+        
+        try:
+            # 编译正则表达式
+            flags = 0 if self.case_sensitive_var.get() else re.IGNORECASE
+            regex = re.compile(pattern, flags)
+            
+            # 查找所有匹配
+            matches = list(regex.finditer(text))
+            
+            if not matches:
+                # 没有匹配，直接插入
+                self.text_display.insert(tk.END, text + '\n')
+                return
+            
+            # 有匹配，逐段插入并高亮
+            last_end = 0
+            for match in matches:
+                start, end = match.span()
+                
+                # 插入匹配前的文本
+                if start > last_end:
+                    self.text_display.insert(tk.END, text[last_end:start])
+                
+                # 插入高亮的匹配文本
+                self.text_display.insert(tk.END, text[start:end], "highlight")
+                
+                last_end = end
+            
+            # 插入剩余文本
+            self.text_display.insert(tk.END, text[last_end:] + '\n')
+            
+        except re.error:
+            # 正则表达式错误，直接插入文本不高亮
+            self.text_display.insert(tk.END, text + '\n')
     
     def _update_stats(self):
         """更新统计信息"""
