@@ -212,6 +212,10 @@ class LogFilterWindow:
             messagebox.showinfo("提示", "请输入关键词")
             return
         
+        # 如果当前显示的不是全部内容（已应用过滤），先显示全部
+        if len(self.filtered_lines) != len(self.all_lines):
+            self._show_all()
+        
         # 如果是新的搜索，重新查找所有匹配
         if self.current_match_index == -1 or len(self.search_matches) == 0:
             self._build_search_matches(keyword)
