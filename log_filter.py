@@ -141,6 +141,9 @@ class LogFilterWindow:
         
         if filename:
             self._load_file(filename)
+            # 确保窗口在加载文件后保持在前台
+            self.window.lift()
+            self.window.focus_force()
     
     def _load_file(self, filename: str):
         """加载文件内容"""
@@ -175,6 +178,10 @@ class LogFilterWindow:
             self._show_all()
             
             self.status_var.set(f"已加载 {len(self.all_lines)} 行")
+            
+            # 确保窗口在加载完成后保持激活状态
+            self.window.lift()
+            self.window.focus_force()
             
         except Exception as e:
             messagebox.showerror("错误", f"加载文件失败: {str(e)}")
