@@ -111,8 +111,13 @@ class LogFilterWindow:
         self.text_display.tag_config("current_match", background="orange")  # 当前匹配项用橙色
         self.text_display.tag_config("line_num", foreground="gray")
         
-        # 同步滚动
-        self.text_display.config(yscrollcommand=self._on_scroll)
+        # 同步滚动 - 绑定文本框的滚动事件到行号同步
+        self.text_display.config(yscrollcommand=self._on_text_scroll)
+        
+        # 绑定鼠标滚轮事件
+        self.text_display.bind("<MouseWheel>", self._on_mousewheel)
+        self.text_display.bind("<Button-4>", self._on_mousewheel)  # Linux 向上滚动
+        self.text_display.bind("<Button-5>", self._on_mousewheel)  # Linux 向下滚动
         
         # 状态栏
         status_frame = ttk.Frame(self.window)
@@ -122,10 +127,26 @@ class LogFilterWindow:
         ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN).pack(
             side=tk.LEFT, fill=tk.X, expand=True)
     
-    def _on_scroll(self, *args):
-        """同步行号和文本的滚动"""
+    def _on_text_scroll(self, *args):
+        """文本滚动时同步行号"""
+        # 更新滚动条
+        scrollbar = self.text_display.vbar
+        scrollbar.set(*args)
+        # 同步行号显示
         self.line_numbers.yview_moveto(args[0])
-        self.text_display.yview_moveto(args[0])
+    
+    def _on_mousewheel(self, event):
+        """处理鼠标滚轮事件"""
+        # 根据不同平台处理滚轮事件
+        if event.num == 4 or event.delta > 0:
+            # 向上滚动
+            self.text_display.yview_scroll(-1, "units")
+            self.line_numbers.yview_scroll(-1, "units")
+        elif event.num == 5 or event.delta < 0:
+            # 向下滚动
+            self.text_display.yview_scroll(1, "units")
+            self.line_numbers.yview_scroll(1, "units")
+        return "break"  # 阻止事件继续传播
     
     def _open_file(self):
         """打开文件"""
