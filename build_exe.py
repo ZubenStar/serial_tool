@@ -7,8 +7,35 @@ import sys
 import subprocess
 from datetime import datetime
 
-def build_exe():
-    """构建exe文件"""
+def parse_version(version_str):
+    """解析版本号字符串"""
+    parts = version_str.split('.')
+    return [int(p) for p in parts]
+
+def increment_version(version_str, bump_type='patch'):
+    """
+    自动递增版本号
+    bump_type: 'major', 'minor', 'patch'
+    """
+    parts = parse_version(version_str)
+    
+    if bump_type == 'major':
+        parts[0] += 1
+        parts[1] = 0
+        parts[2] = 0
+    elif bump_type == 'minor':
+        parts[1] += 1
+        parts[2] = 0
+    else:  # patch
+        parts[2] += 1
+    
+    return '.'.join(map(str, parts))
+
+def build_exe(auto_version=None):
+    """
+    构建exe文件
+    auto_version: None (不更新), 'major', 'minor', 'patch' (自动递增版本号)
+    """
     
     print("=" * 60)
     print("开始打包串口监控工具...")
@@ -23,17 +50,34 @@ def build_exe():
         print(f"\n⚠️  读取VERSION文件失败: {e}")
         return
     
-    # 更新VERSION文件，添加编译时间
+    # 自动更新版本号
+    current_version = original_version
+    if auto_version in ['major', 'minor', 'patch']:
+        try:
+            new_version = increment_version(original_version, auto_version)
+            with open('VERSION', 'w', encoding='utf-8') as f:
+                f.write(new_version)
+            print(f"\n✅ 版本号已更新: {original_version} -> {new_version} ({auto_version})")
+            current_version = new_version
+        except Exception as e:
+            print(f"\n⚠️  更新版本号失败: {e}")
+            return
+    
+    # 添加编译时间到VERSION文件
     try:
         build_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        version_with_time = f"{original_version}\n{build_time}"
+        version_with_time = f"{current_version}\n{build_time}"
         
         with open('VERSION', 'w', encoding='utf-8') as f:
             f.write(version_with_time)
         
-        print(f"\n✅ 已更新VERSION文件: {original_version} (编译时间: {build_time})")
+        print(f"\n✅ 已添加编译时间: {current_version} (编译时间: {build_time})")
     except Exception as e:
-        print(f"\n⚠️  更新VERSION文件失败: {e}")
+        print(f"\n⚠️  添加编译时间失败: {e}")
+        # 如果版本号已更新，需要恢复
+        if auto_version:
+            with open('VERSION', 'w', encoding='utf-8') as f:
+                f.write(original_version)
         return
     
     # PyInstaller命令 - 使用spec文件
@@ -78,16 +122,25 @@ def build_exe():
         print("\n请先安装PyInstaller:")
         print("  pip install pyinstaller")
     finally:
-        # 恢复原始VERSION文件
-        if original_version:
-            try:
-                with open('VERSION', 'w', encoding='utf-8') as f:
-                    f.write(original_version)
+        # 恢复VERSION文件（保留新版本号，只移除编译时间）
+        try:
+            with open('VERSION', 'w', encoding='utf-8') as f:
+                f.write(current_version)
+            if auto_version:
+                print(f"\n✅ VERSION文件已更新为: {current_version}")
+            else:
                 print(f"\n✅ 已恢复VERSION文件")
-            except Exception as e:
-                print(f"\n⚠️  恢复VERSION文件失败: {e}")
+        except Exception as e:
+            print(f"\n⚠️  恢复VERSION文件失败: {e}")
 
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='打包串口监控工具')
+    parser.add_argument('--version', choices=['major', 'minor', 'patch'],
+                       help='自动递增版本号: major (主版本), minor (次版本), patch (补丁版本)')
+    args = parser.parse_args()
+    
     # 检查是否在正确的目录
     if not os.path.exists('gui_app.py'):
         print("❌ 错误: 请在项目根目录运行此脚本")
@@ -98,4 +151,4 @@ if __name__ == "__main__":
         os.makedirs('logs')
         print("✅ 创建logs目录")
     
-    build_exe()
+    build_exe(auto_version=args.version)
