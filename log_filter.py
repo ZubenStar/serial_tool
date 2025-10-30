@@ -27,6 +27,7 @@ class LogFilterWindow:
         # 查询功能状态
         self.search_matches = []  # 存储所有匹配位置 [(line_index, start, end), ...]
         self.current_match_index = -1  # 当前匹配位置索引
+        self.last_search_keyword = ""  # 上次搜索的关键词
         
         self._create_widgets()
         
@@ -172,6 +173,8 @@ class LogFilterWindow:
             
             if content is None:
                 messagebox.showerror("错误", "无法读取文件，不支持的编码格式")
+                self.window.lift()
+                self.window.focus_force()
                 return
             
             # 存储文件信息
@@ -192,6 +195,8 @@ class LogFilterWindow:
             
         except Exception as e:
             messagebox.showerror("错误", f"加载文件失败: {str(e)}")
+            self.window.lift()
+            self.window.focus_force()
             self.status_var.set("加载失败")
     
     def _reload_file(self):
@@ -200,28 +205,39 @@ class LogFilterWindow:
             self._load_file(self.current_file)
         else:
             messagebox.showinfo("提示", "没有打开的文件")
+            self.window.lift()
+            self.window.focus_force()
     
     def _find_next(self):
         """查找下一个匹配项（逐个查找）"""
         if not self.all_lines:
             messagebox.showinfo("提示", "请先打开一个文件")
+            self.window.lift()
+            self.window.focus_force()
             return
         
         keyword = self.keyword_var.get().strip()
         if not keyword:
             messagebox.showinfo("提示", "请输入关键词")
+            self.window.lift()
+            self.window.focus_force()
             return
         
         # 如果当前显示的不是全部内容（已应用过滤），先显示全部
         if len(self.filtered_lines) != len(self.all_lines):
             self._show_all()
         
-        # 如果是新的搜索，重新查找所有匹配
-        if self.current_match_index == -1 or len(self.search_matches) == 0:
+        # 如果是新的搜索或关键词已改变，重新查找所有匹配
+        if (self.current_match_index == -1 or
+            len(self.search_matches) == 0 or
+            keyword != self.last_search_keyword):
             self._build_search_matches(keyword)
+            self.last_search_keyword = keyword
         
         if not self.search_matches:
             messagebox.showinfo("查询", "未找到匹配项")
+            self.window.lift()
+            self.window.focus_force()
             self.status_var.set("未找到匹配项")
             return
         
@@ -263,6 +279,8 @@ class LogFilterWindow:
                         start = pos + 1
         except re.error as e:
             messagebox.showerror("正则表达式错误", f"正则表达式语法错误: {str(e)}")
+            self.window.lift()
+            self.window.focus_force()
             self.search_matches = []
     
     def _highlight_current_match(self):
@@ -296,11 +314,15 @@ class LogFilterWindow:
         """应用过滤条件（全局过滤）"""
         if not self.all_lines:
             messagebox.showinfo("提示", "请先打开一个文件")
+            self.window.lift()
+            self.window.focus_force()
             return
         
         keyword = self.keyword_var.get().strip()
         if not keyword:
             messagebox.showinfo("提示", "请输入关键词")
+            self.window.lift()
+            self.window.focus_force()
             return
         
         self.status_var.set("正在过滤...")
@@ -327,12 +349,17 @@ class LogFilterWindow:
             # 重置查询状态
             self.search_matches = []
             self.current_match_index = -1
+            self.last_search_keyword = ""
             
         except re.error as e:
             messagebox.showerror("正则表达式错误", f"正则表达式语法错误: {str(e)}")
+            self.window.lift()
+            self.window.focus_force()
             self.status_var.set("过滤失败")
         except Exception as e:
             messagebox.showerror("错误", f"过滤失败: {str(e)}")
+            self.window.lift()
+            self.window.focus_force()
             self.status_var.set("过滤失败")
     
     def _filter_lines(self, lines: List[str], keyword: str, 
@@ -380,6 +407,7 @@ class LogFilterWindow:
         # 重置查询状态
         self.search_matches = []
         self.current_match_index = -1
+        self.last_search_keyword = ""
     
     def _display_lines(self, lines: List[tuple], highlight_keyword: str = None):
         """
@@ -508,6 +536,8 @@ class LogFilterWindow:
         """导出过滤结果"""
         if not self.filtered_lines:
             messagebox.showinfo("提示", "没有可导出的内容")
+            self.window.lift()
+            self.window.focus_force()
             return
         
         filename = filedialog.asksaveasfilename(
@@ -523,9 +553,13 @@ class LogFilterWindow:
                         f.write(f"{line_num}: {content}\n")
                 
                 messagebox.showinfo("成功", f"已导出 {len(self.filtered_lines)} 行到:\n{filename}")
+                self.window.lift()
+                self.window.focus_force()
                 self.status_var.set(f"已导出到 {os.path.basename(filename)}")
             except Exception as e:
                 messagebox.showerror("错误", f"导出失败: {str(e)}")
+                self.window.lift()
+                self.window.focus_force()
     
     def run(self):
         """运行窗口（仅在独立模式下使用）"""
