@@ -5,6 +5,7 @@
 import os
 import sys
 import subprocess
+from datetime import datetime
 
 def build_exe():
     """构建exe文件"""
@@ -12,6 +13,28 @@ def build_exe():
     print("=" * 60)
     print("开始打包串口监控工具...")
     print("=" * 60)
+    
+    # 备份原始VERSION文件
+    original_version = None
+    try:
+        with open('VERSION', 'r', encoding='utf-8') as f:
+            original_version = f.read().strip()
+    except Exception as e:
+        print(f"\n⚠️  读取VERSION文件失败: {e}")
+        return
+    
+    # 更新VERSION文件，添加编译时间
+    try:
+        build_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        version_with_time = f"{original_version}\n{build_time}"
+        
+        with open('VERSION', 'w', encoding='utf-8') as f:
+            f.write(version_with_time)
+        
+        print(f"\n✅ 已更新VERSION文件: {original_version} (编译时间: {build_time})")
+    except Exception as e:
+        print(f"\n⚠️  更新VERSION文件失败: {e}")
+        return
     
     # PyInstaller命令 - 使用spec文件
     cmd = [
@@ -50,12 +73,19 @@ def build_exe():
         print(f"\n❌ 打包失败: {e}")
         print("\n请确保已安装PyInstaller:")
         print("  pip install pyinstaller")
-        sys.exit(1)
     except FileNotFoundError:
         print("\n❌ 未找到PyInstaller")
         print("\n请先安装PyInstaller:")
         print("  pip install pyinstaller")
-        sys.exit(1)
+    finally:
+        # 恢复原始VERSION文件
+        if original_version:
+            try:
+                with open('VERSION', 'w', encoding='utf-8') as f:
+                    f.write(original_version)
+                print(f"\n✅ 已恢复VERSION文件")
+            except Exception as e:
+                print(f"\n⚠️  恢复VERSION文件失败: {e}")
 
 if __name__ == "__main__":
     # 检查是否在正确的目录

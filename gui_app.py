@@ -21,24 +21,29 @@ def get_monitor_module():
 
 # 读取版本信息 - 优化：缓存版本号
 _version_cache = None
+_build_time_cache = None
 
-def get_version() -> str:
-    """从VERSION文件读取版本号（带缓存）"""
-    global _version_cache
+def get_version_info() -> tuple:
+    """从VERSION文件读取版本号和编译时间（带缓存）"""
+    global _version_cache, _build_time_cache
     if _version_cache is not None:
-        return _version_cache
+        return _version_cache, _build_time_cache
     
     try:
         version_file = Path(__file__).parent / "VERSION"
         if version_file.exists():
-            _version_cache = version_file.read_text(encoding='utf-8').strip()
-            return _version_cache
+            content = version_file.read_text(encoding='utf-8').strip()
+            lines = content.split('\n')
+            _version_cache = lines[0].strip()
+            _build_time_cache = lines[1].strip() if len(lines) > 1 else None
+            return _version_cache, _build_time_cache
     except Exception:
         pass
     _version_cache = "1.0.0"
-    return _version_cache
+    _build_time_cache = None
+    return _version_cache, _build_time_cache
 
-VERSION = get_version()
+VERSION, BUILD_TIME = get_version_info()
 
 class SerialToolGUI:
     """串口工具图形界面"""
@@ -243,7 +248,10 @@ class SerialToolGUI:
         status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # 版本信息标签
-        version_label = ttk.Label(status_frame, text=f"v{VERSION}", relief=tk.SUNKEN, foreground="gray")
+        version_text = f"v{VERSION}"
+        if BUILD_TIME:
+            version_text += f" (编译: {BUILD_TIME})"
+        version_label = ttk.Label(status_frame, text=version_text, relief=tk.SUNKEN, foreground="gray")
         version_label.pack(side=tk.RIGHT, padx=5)
     
     def _init_color_tags(self):

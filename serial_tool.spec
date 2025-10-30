@@ -7,9 +7,10 @@ from PyInstaller.utils.win32.versioninfo import (
 
 block_cipher = None
 
-# 读取版本号
+# 读取版本号（只读取第一行）
 with open('VERSION', 'r', encoding='utf-8') as f:
-    version_str = f.read().strip()
+    lines = f.read().strip().split('\n')
+    version_str = lines[0].strip()
 
 # 将版本号转换为四位数字格式 (例如: 1.7.1 -> 1.7.1.0)
 version_parts = version_str.split('.')
