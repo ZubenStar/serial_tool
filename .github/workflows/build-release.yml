@@ -41,10 +41,28 @@ jobs:
     - name: Create logs directory for packaging
       run: |
         New-Item -ItemType Directory -Force -Path logs
+    
+    - name: Add build timestamp to VERSION
+      run: |
+        $version = Get-Content VERSION -Raw
+        $version = $version.Trim()
+        $buildTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        "$version`n$buildTime" | Set-Content VERSION -NoNewline
+        Write-Host "Added build time: $buildTime to version $version"
+      shell: pwsh
         
     - name: Build executable
       run: |
         pyinstaller --clean serial_tool.spec
+    
+    - name: Restore VERSION file
+      run: |
+        $content = Get-Content VERSION -Raw
+        $version = ($content -split "`n")[0].Trim()
+        $version | Set-Content VERSION -NoNewline
+        Write-Host "Restored VERSION to: $version"
+      shell: pwsh
+      if: always()
         
     - name: Rename executable to Chinese name
       run: |
