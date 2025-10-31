@@ -445,8 +445,44 @@ class SerialToolGUI:
         if active_ports and not self.send_port_var.get():
             self.send_port_combo.current(0)
     
+    def _is_garbled_text(self, text: str) -> bool:
+        """检测文本是否为乱码
+        
+        检测规则：
+        1. 包含过多的控制字符或不可打印字符
+        2. 包含过多的替换字符（�）
+        3. 编码检测失败
+        """
+        if not text:
+            return False
+        
+        # 计算不可打印字符的比例
+        printable_chars = sum(1 for c in text if c.isprintable() or c in '\n\r\t')
+        total_chars = len(text)
+        
+        # 如果不可打印字符超过30%，认为是乱码
+        if total_chars > 0 and (printable_chars / total_chars) < 0.7:
+            return True
+        
+        # 检查是否包含过多的替换字符（�）
+        replacement_count = text.count('�')
+        if replacement_count > 0 and (replacement_count / total_chars) > 0.1:
+            return True
+        
+        # 检查是否包含过多的连续控制字符
+        control_char_count = sum(1 for c in text if ord(c) < 32 and c not in '\n\r\t')
+        if control_char_count > 0 and (control_char_count / total_chars) > 0.3:
+            return True
+        
+        return False
+    
     def _display_data(self, port, timestamp, data):
         """显示接收到的数据（使用缓冲区批量处理）"""
+        # 检测并过滤乱码
+        if self._is_garbled_text(data):
+            # 乱码数据不显示，只记录到日志
+            return
+        
         with self.buffer_lock:
             self.display_buffer.append({
                 'port': port,
