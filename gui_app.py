@@ -62,6 +62,8 @@ class SerialToolGUI:
         self.config_file = "serial_tool_config.json"
         self.batch_configs_file = "serial_tool_batch_configs.json"  # 批量配置文件
         self.batch_port_configs: List[Dict] = []  # 批量串口配置列表
+        self.preset_data_file = "serial_tool_preset_data.json"  # 预设数据文件
+        self.preset_data_list: List[Dict] = []  # 预设数据列表
         
         # 性能优化：批量更新缓冲区 - 激进的实时显示策略
         self.display_buffer = []
@@ -194,13 +196,28 @@ class SerialToolGUI:
         self.send_port_combo = ttk.Combobox(send_port_frame, textvariable=self.send_port_var, width=12)
         self.send_port_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
+        # 预设数据选择
+        preset_frame = ttk.Frame(send_frame)
+        preset_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(preset_frame, text="预设:").pack(side=tk.LEFT)
+        self.preset_var = tk.StringVar()
+        self.preset_combo = ttk.Combobox(preset_frame, textvariable=self.preset_var, width=12, state="readonly")
+        self.preset_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.preset_combo.bind('<<ComboboxSelected>>', self._on_preset_selected)
+        
         send_data_frame = ttk.Frame(send_frame)
         send_data_frame.pack(fill=tk.X, pady=2)
         ttk.Label(send_data_frame, text="数据:").pack(anchor=tk.W)
         self.send_data_var = tk.StringVar()
         ttk.Entry(send_data_frame, textvariable=self.send_data_var).pack(fill=tk.X, pady=2)
         self.send_data_var.trace_add('write', self._on_config_change)
-        ttk.Button(send_data_frame, text="发送", command=self._send_data).pack(fill=tk.X, pady=2)
+        
+        # 按钮行：发送、保存预设、删除预设
+        send_btn_frame = ttk.Frame(send_frame)
+        send_btn_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(send_btn_frame, text="发送", command=self._send_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(send_btn_frame, text="保存预设", command=self._save_preset_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(send_btn_frame, text="删除预设", command=self._delete_preset_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
         # 活动串口列表 - 移到发送数据区之后
         active_frame = ttk.LabelFrame(left_panel, text="活动串口", padding=10)
@@ -533,6 +550,102 @@ class SerialToolGUI:
         else:
             messagebox.showerror("错误", f"发送失败: {port}")
     
+    def _save_preset_data(self):
+        """保存当前数据为预设"""
+        data = self.send_data_var.get().strip()
+        
+        if not data:
+            messagebox.showwarning("警告", "请输入要保存的数据")
+            return
+        
+        # 弹出对话框让用户输入预设名称
+        from tkinter import simpledialog
+        name = simpledialog.askstring("保存预设", "请输入预设名称:", parent=self.root)
+        
+        if not name:
+            return
+        
+        name = name.strip()
+        if not name:
+            messagebox.showwarning("警告", "预设名称不能为空")
+            return
+        
+        # 检查是否已存在同名预设
+        for preset in self.preset_data_list:
+            if preset['name'] == name:
+                result = messagebox.askyesno("确认", f"预设 '{name}' 已存在，是否覆盖？")
+                if result:
+                    preset['data'] = data
+                    self._save_preset_data_to_file()
+                    self._update_preset_combo()
+                    self.status_var.set(f"已更新预设: {name}")
+                return
+        
+        # 添加新预设
+        self.preset_data_list.append({
+            'name': name,
+            'data': data
+        })
+        self._save_preset_data_to_file()
+        self._update_preset_combo()
+        self.status_var.set(f"已保存预设: {name}")
+    
+    def _delete_preset_data(self):
+        """删除选中的预设"""
+        name = self.preset_var.get()
+        
+        if not name:
+            messagebox.showwarning("警告", "请选择要删除的预设")
+            return
+        
+        result = messagebox.askyesno("确认", f"确定要删除预设 '{name}' 吗？")
+        if not result:
+            return
+        
+        # 删除预设
+        self.preset_data_list = [p for p in self.preset_data_list if p['name'] != name]
+        self._save_preset_data_to_file()
+        self._update_preset_combo()
+        self.preset_var.set("")
+        self.status_var.set(f"已删除预设: {name}")
+    
+    def _on_preset_selected(self, event):
+        """预设被选中时的回调"""
+        name = self.preset_var.get()
+        
+        if not name:
+            return
+        
+        # 查找对应的预设数据
+        for preset in self.preset_data_list:
+            if preset['name'] == name:
+                self.send_data_var.set(preset['data'])
+                self.status_var.set(f"已加载预设: {name}")
+                return
+    
+    def _update_preset_combo(self):
+        """更新预设下拉列表"""
+        names = [p['name'] for p in self.preset_data_list]
+        self.preset_combo['values'] = names
+    
+    def _save_preset_data_to_file(self):
+        """保存预设数据到文件"""
+        try:
+            with open(self.preset_data_file, 'w', encoding='utf-8') as f:
+                json.dump(self.preset_data_list, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存预设数据失败: {e}")
+    
+    def _load_preset_data_from_file(self):
+        """从文件加载预设数据"""
+        if os.path.exists(self.preset_data_file):
+            try:
+                with open(self.preset_data_file, 'r', encoding='utf-8') as f:
+                    self.preset_data_list = json.load(f)
+                self._update_preset_combo()
+            except Exception as e:
+                print(f"加载预设数据失败: {e}")
+    
     def _add_to_batch(self):
         """将当前配置添加到批量配置列表"""
         port = self.port_var.get()
@@ -705,6 +818,9 @@ class SerialToolGUI:
                     self.status_var.set(f"已加载上次配置和{len(self.batch_port_configs)}个批量串口配置")
             except Exception as e:
                 print(f"加载批量配置失败: {e}")
+        
+        # 加载预设数据
+        self._load_preset_data_from_file()
     
     def _format_bytes(self, bytes_count: int) -> str:
         """格式化字节数为可读格式"""
