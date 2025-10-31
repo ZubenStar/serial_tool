@@ -47,8 +47,14 @@ jobs:
         $version = Get-Content VERSION -Raw
         $version = $version.Trim()
         $buildTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        "$version`n$buildTime" | Set-Content VERSION -NoNewline
-        Write-Host "Added build time: $buildTime to version $version"
+        # Get timezone offset
+        $offset = [System.TimeZoneInfo]::Local.GetUtcOffset([DateTime]::Now)
+        $hours = $offset.Hours
+        $minutes = [Math]::Abs($offset.Minutes)
+        $tzStr = "UTC{0:+00;-00}:{1:00}" -f $hours, $minutes
+        $buildTimeWithTz = "$buildTime $tzStr"
+        "$version`n$buildTimeWithTz" | Set-Content VERSION -NoNewline
+        Write-Host "Added build time: $buildTimeWithTz to version $version"
       shell: pwsh
         
     - name: Build executable

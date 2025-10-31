@@ -65,7 +65,17 @@ def build_exe(auto_version=None):
     
     # 添加编译时间到VERSION文件
     try:
-        build_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        # 获取当前时区信息
+        from datetime import timezone
+        import time
+        
+        # 获取本地时区偏移
+        utc_offset = -time.timezone if not time.daylight else -time.altzone
+        hours_offset = utc_offset // 3600
+        minutes_offset = (abs(utc_offset) % 3600) // 60
+        tz_str = f"UTC{hours_offset:+03d}:{minutes_offset:02d}"
+        
+        build_time = datetime.now().strftime(f'%Y-%m-%d %H:%M:%S {tz_str}')
         version_with_time = f"{current_version}\n{build_time}"
         
         with open('VERSION', 'w', encoding='utf-8') as f:
