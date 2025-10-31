@@ -59,10 +59,8 @@ class SerialToolGUI:
         monitor_mod = get_monitor_module()
         self.monitor = monitor_mod['MultiSerialMonitor'](log_dir="logs")
         self.port_configs: Dict[str, Dict] = {}
-        self.config_file = "serial_tool_config.json"
-        self.batch_configs_file = "serial_tool_batch_configs.json"  # 批量配置文件
+        self.config_file = "serial_tool_config.json"  # 统一配置文件
         self.batch_port_configs: List[Dict] = []  # 批量串口配置列表
-        self.preset_data_file = "serial_tool_preset_data.json"  # 预设数据文件
         self.preset_data_list: List[Dict] = []  # 预设数据列表
         
         # 性能优化：批量更新缓冲区 - 激进的实时显示策略
@@ -665,22 +663,13 @@ class SerialToolGUI:
         self.preset_combo['values'] = names
     
     def _save_preset_data_to_file(self):
-        """保存预设数据到文件"""
-        try:
-            with open(self.preset_data_file, 'w', encoding='utf-8') as f:
-                json.dump(self.preset_data_list, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存预设数据失败: {e}")
+        """保存预设数据到统一配置文件"""
+        self._save_config()
     
     def _load_preset_data_from_file(self):
-        """从文件加载预设数据"""
-        if os.path.exists(self.preset_data_file):
-            try:
-                with open(self.preset_data_file, 'r', encoding='utf-8') as f:
-                    self.preset_data_list = json.load(f)
-                self._update_preset_combo()
-            except Exception as e:
-                print(f"加载预设数据失败: {e}")
+        """从统一配置文件加载预设数据"""
+        # 预设数据在_load_config中统一加载
+        pass
     
     def _add_to_batch(self):
         """将当前配置添加到批量配置列表"""
@@ -802,12 +791,16 @@ class SerialToolGUI:
         messagebox.showinfo("批量配置详情", info)
     
     def _save_config(self):
-        """保存配置到文件"""
+        """保存配置到统一配置文件"""
         config = {
-            'baudrate': self.baudrate_var.get(),
-            'keywords': self.keywords_var.get(),
-            'regex': self.regex_var.get(),
-            'send_data': self.send_data_var.get()
+            'default_settings': {
+                'baudrate': self.baudrate_var.get(),
+                'keywords': self.keywords_var.get(),
+                'regex': self.regex_var.get(),
+                'send_data': self.send_data_var.get()
+            },
+            'preset_data': self.preset_data_list,
+            'batch_configs': self.batch_port_configs
         }
         try:
             with open(self.config_file, 'w', encoding='utf-8') as f:
@@ -816,47 +809,45 @@ class SerialToolGUI:
             print(f"保存配置失败: {e}")
     
     def _save_batch_configs(self):
-        """保存批量配置到文件"""
-        try:
-            with open(self.batch_configs_file, 'w', encoding='utf-8') as f:
-                json.dump(self.batch_port_configs, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存批量配置失败: {e}")
+        """保存批量配置到统一配置文件"""
+        self._save_config()
     
     def _load_config(self):
-        """从文件加载配置"""
-        # 加载基本配置
+        """从统一配置文件加载配置"""
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, 'r', encoding='utf-8') as f:
                     config = json.load(f)
+                
+                # 加载默认设置
+                default_settings = config.get('default_settings', {})
+                if 'baudrate' in default_settings:
+                    self.baudrate_var.set(default_settings['baudrate'])
+                if 'keywords' in default_settings:
+                    self.keywords_var.set(default_settings['keywords'])
+                if 'regex' in default_settings:
+                    self.regex_var.set(default_settings['regex'])
+                if 'send_data' in default_settings:
+                    self.send_data_var.set(default_settings['send_data'])
+                
+                # 加载预设数据
+                self.preset_data_list = config.get('preset_data', [])
+                self._update_preset_combo()
+                
+                # 加载批量配置
+                self.batch_port_configs = config.get('batch_configs', [])
+                
+                # 更新状态栏
+                status_parts = ["已加载配置"]
+                if self.batch_port_configs:
+                    status_parts.append(f"{len(self.batch_port_configs)}个批量串口")
+                if self.preset_data_list:
+                    status_parts.append(f"{len(self.preset_data_list)}个预设")
+                self.status_var.set(" | ".join(status_parts))
                     
-                # 恢复配置
-                if 'baudrate' in config:
-                    self.baudrate_var.set(config['baudrate'])
-                if 'keywords' in config:
-                    self.keywords_var.set(config['keywords'])
-                if 'regex' in config:
-                    self.regex_var.set(config['regex'])
-                if 'send_data' in config:
-                    self.send_data_var.set(config['send_data'])
-                    
-                self.status_var.set("已加载上次配置")
             except Exception as e:
                 print(f"加载配置失败: {e}")
-        
-        # 加载批量配置
-        if os.path.exists(self.batch_configs_file):
-            try:
-                with open(self.batch_configs_file, 'r', encoding='utf-8') as f:
-                    self.batch_port_configs = json.load(f)
-                if self.batch_port_configs:
-                    self.status_var.set(f"已加载上次配置和{len(self.batch_port_configs)}个批量串口配置")
-            except Exception as e:
-                print(f"加载批量配置失败: {e}")
-        
-        # 加载预设数据
-        self._load_preset_data_from_file()
+                self.status_var.set("配置加载失败")
     
     def _format_bytes(self, bytes_count: int) -> str:
         """格式化字节数为可读格式"""
