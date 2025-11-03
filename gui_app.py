@@ -166,10 +166,27 @@ class SerialToolGUI:
         ttk.Button(btn_frame2, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(btn_frame2, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 日志过滤工具按钮
-        log_filter_frame = ttk.Frame(control_frame)
-        log_filter_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(log_filter_frame, text="📄 日志过滤工具", command=self._open_log_filter).pack(fill=tk.X)
+        # 高级工具按钮区
+        tools_frame = ttk.LabelFrame(control_frame, text="高级工具", padding=5)
+        tools_frame.pack(fill=tk.X, pady=5)
+        
+        # 第一行工具按钮
+        tools_row1 = ttk.Frame(tools_frame)
+        tools_row1.pack(fill=tk.X, pady=2)
+        ttk.Button(tools_row1, text="📄 日志过滤", command=self._open_log_filter).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row1, text="📊 数据可视化", command=self._open_visualizer).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        
+        # 第二行工具按钮
+        tools_row2 = ttk.Frame(tools_frame)
+        tools_row2.pack(fill=tk.X, pady=2)
+        ttk.Button(tools_row2, text="🔍 数据分析", command=self._open_analyzer).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row2, text="🎬 录制回放", command=self._open_recorder).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        
+        # 第三行工具按钮
+        tools_row3 = ttk.Frame(tools_frame)
+        tools_row3.pack(fill=tk.X, pady=2)
+        ttk.Button(tools_row3, text="🤖 自动化测试", command=self._open_automation).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row3, text="🔧 实用工具", command=self._open_utilities).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
         # 批量操作区
         batch_frame = ttk.LabelFrame(left_panel, text="批量操作", padding=10)
@@ -919,6 +936,56 @@ class SerialToolGUI:
             import traceback
             error_details = traceback.format_exc()
             messagebox.showerror("错误", f"无法打开日志过滤工具: {str(e)}\n\n详细信息:\n{error_details}")
+    
+    def _open_visualizer(self):
+        """打开数据可视化工具"""
+        try:
+            from data_visualizer import DataVisualizer
+            visualizer = DataVisualizer(self.root, self.monitor)
+            visualizer.open_visualizer_window()
+            self.status_var.set("已打开数据可视化工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开数据可视化工具: {str(e)}")
+    
+    def _open_analyzer(self):
+        """打开数据分析工具"""
+        try:
+            from data_analyzer import DataAnalyzerWindow
+            analyzer = DataAnalyzerWindow(self.root)
+            analyzer.open_analyzer_window()
+            self.status_var.set("已打开数据分析工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开数据分析工具: {str(e)}")
+    
+    def _open_recorder(self):
+        """打开录制回放工具"""
+        try:
+            from recorder_player import RecorderPlayerWindow
+            recorder = RecorderPlayerWindow(self.root, self.monitor)
+            recorder.open_window()
+            self.status_var.set("已打开录制回放工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开录制回放工具: {str(e)}")
+    
+    def _open_automation(self):
+        """打开自动化测试工具"""
+        try:
+            from automation_tester import AutomationTesterWindow
+            automation = AutomationTesterWindow(self.root, self.monitor)
+            automation.open_window()
+            self.status_var.set("已打开自动化测试工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开自动化测试工具: {str(e)}")
+    
+    def _open_utilities(self):
+        """打开实用工具箱"""
+        try:
+            from utility_tools import UtilityToolsWindow
+            utilities = UtilityToolsWindow(self.root)
+            utilities.open_window()
+            self.status_var.set("已打开实用工具箱")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开实用工具箱: {str(e)}")
     
     def close(self):
         """关闭应用，确保资源正确清理"""

@@ -22,6 +22,7 @@
 
 ## 功能特性
 
+### 基础功能
 ✅ **多串口同时监控** - 可以同时监控多个COM口
 ✅ **批量快速启动** - 🚀 并行打开多个串口，显著提升启动速度
 ✅ **关键词过滤** - 支持多个关键词过滤，只显示包含关键词的数据
@@ -32,6 +33,42 @@
 ✅ **数据发送** - 支持向指定串口发送数据
 ✅ **配置记忆功能** - 自动保存和恢复上次使用的配置（波特率、关键词、正则表达式、发送数据）
 ✅ **批量配置保存** - 保存常用的多串口配置，一键快速启动
+
+### 🎨 高级功能（v2.0+）
+
+#### 📊 数据可视化
+✅ **实时带宽监控** - 可视化显示各串口的数据流量和带宽使用情况
+✅ **关键词统计图表** - 统计和可视化关键词出现频率
+✅ **数据流量趋势** - 长期数据流量趋势分析和图表展示
+
+#### 🔍 高级过滤
+✅ **复杂过滤规则** - 支持AND/OR/NOT逻辑组合的高级过滤
+✅ **时间范围过滤** - 按时间段筛选数据
+✅ **数据长度过滤** - 按数据包大小筛选
+✅ **颜色标记规则** - 为不同类型的数据设置颜色标记
+
+#### 🔧 数据分析工具
+✅ **协议解析器** - 支持JSON、HEX、Modbus等协议格式解析
+✅ **校验和验证** - CRC16、XOR、SUM等校验和计算和验证
+✅ **数据统计** - 字节统计、错误率分析、通信质量评估
+✅ **错误检测** - 自动检测数据包错误和异常
+
+#### 🎬 录制和回放
+✅ **会话录制** - 录制完整的串口通信会话
+✅ **时间戳回放** - 按原始时序回放录制的数据
+✅ **多格式导出** - 支持JSON、CSV等格式导出
+✅ **回放控制** - 支持暂停、恢复、调速等播放控制
+
+#### 🤖 自动化测试
+✅ **测试用例管理** - 创建和管理自动化测试用例
+✅ **自动响应规则** - 配置接收到特定数据时的自动响应
+✅ **脚本化发送** - 支持序列化的自动发送脚本
+
+#### 🛠️ 实用工具箱
+✅ **波特率计算器** - 根据时钟频率计算最佳波特率
+✅ **进制转换器** - HEX、DEC、BIN、ASCII之间的快速转换
+✅ **测试数据生成** - 生成各种格式的测试数据
+✅ **秒表和倒计时** - 内置的时间测量工具
 
 ## 安装依赖
 
@@ -138,6 +175,41 @@ python gui_app.py
 5. 批量配置会自动保存到 `serial_tool_batch_configs.json`
 6. 下次打开程序时，批量配置自动恢复，直接点击"快速启动"即可
 
+**🎨 高级工具使用:**
+在主界面的"高级工具"区域，提供了6个高级功能按钮：
+
+1. **📊 数据可视化** - 打开可视化窗口
+   - 实时带宽监控图表
+   - 关键词出现频率统计
+   - 数据流量趋势分析
+
+2. **🔧 数据分析** - 打开分析工具
+   - 协议解析（JSON/HEX/Modbus）
+   - 校验和验证（CRC16/XOR/SUM）
+   - 数据统计和错误检测
+
+3. **🎬 录制回放** - 打开录制器
+   - 录制串口会话
+   - 按时序回放数据
+   - 导出为JSON/CSV格式
+
+4. **🤖 自动化测试** - 打开测试工具
+   - 创建测试用例
+   - 配置自动响应规则
+   - 脚本化发送序列
+
+5. **🛠️ 实用工具** - 打开工具箱
+   - 波特率计算器
+   - 进制转换器
+   - 测试数据生成器
+   - 秒表和倒计时
+
+6. **🔍 高级过滤** - 配置复杂过滤规则
+   - 逻辑组合过滤（AND/OR/NOT）
+   - 时间范围筛选
+   - 数据长度过滤
+   - 颜色标记规则
+
 ### 方法2: 命令行
 
 **列出可用串口:**
@@ -238,18 +310,24 @@ python test_serial.py && python test_performance.py
 serial_tool/
 ├── .github/
 │   └── workflows/
-│       └── build-release.yml     # GitHub Actions自动构建配置
-├── serial_monitor.py             # 核心串口监控类
-├── gui_app.py                   # 图形界面应用
-├── cli_app.py                   # 命令行应用
-├── test_serial.py               # 单元测试
-├── test_performance.py          # 性能测试
-├── build_exe.py                 # 本地打包脚本
-├── requirements.txt             # 依赖包
-├── README.md                    # 说明文档
-├── RELEASE_GUIDE.md             # 发布指南
-├── serial_tool_config.json      # GUI配置文件（自动生成）
-└── logs/                        # 日志保存目录（自动创建）
+│       └── build-release.yml         # GitHub Actions自动构建配置
+├── serial_monitor.py                 # 核心串口监控类
+├── gui_app.py                       # 图形界面应用
+├── cli_app.py                       # 命令行应用
+├── data_visualizer.py               # 📊 数据可视化模块
+├── advanced_filter.py               # 🔍 高级过滤模块
+├── data_analyzer.py                 # 🔧 数据分析工具
+├── recorder_player.py               # 🎬 录制回放模块
+├── automation_tester.py             # 🤖 自动化测试模块
+├── utility_tools.py                 # 🛠️ 实用工具箱
+├── test_serial.py                   # 单元测试
+├── test_performance.py              # 性能测试
+├── build_exe.py                     # 本地打包脚本
+├── requirements.txt                 # 依赖包
+├── README.md                        # 说明文档
+├── RELEASE_GUIDE.md                 # 发布指南
+├── serial_tool_config.json          # GUI配置文件（自动生成）
+└── logs/                            # 日志保存目录（自动创建）
 ```
 
 ## 核心类说明
@@ -400,6 +478,41 @@ monitor.stop_all()
 ```
 
 查看完整示例: [`example_batch_usage.py`](example_batch_usage.py)
+
+### 示例6: 使用高级功能模块
+
+```python
+from data_visualizer import DataVisualizer
+from data_analyzer import JSONParser, ChecksumValidator
+from recorder_player import RecorderManager
+import tkinter as tk
+
+# 创建主窗口
+root = tk.Tk()
+
+# 1. 使用数据可视化
+visualizer = DataVisualizer(root)
+visualizer.add_data_point("COM1", 1024)  # 添加数据点
+
+# 2. 使用协议解析器
+parser = JSONParser()
+result = parser.parse('{"temp": 25.5, "humidity": 60}')
+print(f"解析结果: {result}")
+
+# 3. 使用校验和验证
+validator = ChecksumValidator()
+data = b'\x01\x02\x03\x04'
+crc = validator.calculate_crc16(data)
+is_valid = validator.verify_crc16(data, crc)
+print(f"CRC16: {crc:04X}, 验证: {is_valid}")
+
+# 4. 使用录制管理器
+recorder = RecorderManager()
+recorder.start_recording("COM1")
+# ... 记录数据 ...
+recorder.stop_recording()
+recorder.export_to_json("session.json")
+```
 
 ## 日志格式
 
