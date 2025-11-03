@@ -64,7 +64,7 @@ class SerialMonitor:
                  log_dir: str = "logs",
                  callback: Optional[Callable] = None,
                  save_all_to_log: bool = True,
-                 callback_throttle_ms: int = 1,
+                 callback_throttle_ms: int = 10,
                  enable_color: bool = True):
         self.port = port
         self.baudrate = baudrate
@@ -251,11 +251,18 @@ class SerialMonitor:
             print(msg)
             return True
             
+        except serial.SerialException as e:
+            if self.enable_color:
+                error_msg = f"{Colors.BRIGHT_RED}串口错误{Colors.RESET} {self.port_color}{self.port}{Colors.RESET}: {Colors.RED}{e}{Colors.RESET}"
+            else:
+                error_msg = f"串口错误 {self.port}: {e}"
+            print(error_msg)
+            return False
         except Exception as e:
             if self.enable_color:
-                error_msg = f"{Colors.BRIGHT_RED}启动失败{Colors.RESET} {self.port_color}{self.port}{Colors.RESET}: {Colors.RED}{e}{Colors.RESET}"
+                error_msg = f"{Colors.BRIGHT_RED}启动失败{Colors.RESET} {self.port_color}{self.port}{Colors.RESET}: {Colors.RED}{type(e).__name__}: {e}{Colors.RESET}"
             else:
-                error_msg = f"启动失败 {self.port}: {e}"
+                error_msg = f"启动失败 {self.port}: {type(e).__name__}: {e}"
             print(error_msg)
             return False
     
@@ -265,13 +272,27 @@ class SerialMonitor:
         
         if self.thread:
             self.thread.join(timeout=2)
+            # 如果线程未能在超时时间内结束，记录警告
+            if self.thread.is_alive():
+                if self.enable_color:
+                    print(f"{Colors.BRIGHT_YELLOW}警告: 串口 {self.port} 监控线程未能正常停止{Colors.RESET}")
+                else:
+                    print(f"警告: 串口 {self.port} 监控线程未能正常停止")
         
         # 停止前刷新剩余的回调
         with self.callback_lock:
             self._flush_callback_buffer_internal()
         
-        if self.serial_conn and self.serial_conn.is_open:
-            self.serial_conn.close()
+        # 安全关闭串口连接
+        if self.serial_conn:
+            try:
+                if self.serial_conn.is_open:
+                    self.serial_conn.close()
+            except Exception as e:
+                if self.enable_color:
+                    print(f"{Colors.BRIGHT_RED}关闭串口时出错{Colors.RESET}: {e}")
+                else:
+                    print(f"关闭串口时出错: {e}")
         
         if self.enable_color:
             print(f"{self.port_color}串口 {self.port} 已停止{Colors.RESET}")
@@ -315,7 +336,7 @@ class MultiSerialMonitor:
                    regex_patterns: Optional[List[str]] = None,
                    callback: Optional[Callable] = None,
                    save_all_to_log: bool = True,
-                   callback_throttle_ms: int = 1,
+                   callback_throttle_ms: int = 10,
                    enable_color: bool = True) -> bool:
         """添加串口监控
         

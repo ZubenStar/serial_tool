@@ -67,7 +67,7 @@ class SerialToolGUI:
         self.display_buffer = []
         self.buffer_lock = threading.Lock()
         self.max_buffer_size = 100  # 批量处理的最大条目数
-        self.update_interval = 10  # UI更新间隔(毫秒) - 非常快的轮询
+        self.update_interval = 16  # UI更新间隔(毫秒) - 约60fps，减少CPU压力
         self.batch_threshold = 50  # 超过此值才批量处理
         self.max_display_lines = 1000  # 最大显示行数
         self.trim_to_lines = 800  # 超过最大行数时保留的行数
@@ -666,11 +666,6 @@ class SerialToolGUI:
         """保存预设数据到统一配置文件"""
         self._save_config()
     
-    def _load_preset_data_from_file(self):
-        """从统一配置文件加载预设数据"""
-        # 预设数据在_load_config中统一加载
-        pass
-    
     def _add_to_batch(self):
         """将当前配置添加到批量配置列表"""
         port = self.port_var.get()
@@ -918,14 +913,32 @@ class SerialToolGUI:
             # 传递应用的日志目录到日志过滤窗口
             LogFilterWindow(self.root, log_dir=self.monitor.log_dir)
             self.status_var.set("已打开日志过滤工具")
+        except ImportError as e:
+            messagebox.showerror("错误", f"无法导入日志过滤模块: {str(e)}")
         except Exception as e:
-            messagebox.showerror("错误", f"无法打开日志过滤工具: {str(e)}")
+            import traceback
+            error_details = traceback.format_exc()
+            messagebox.showerror("错误", f"无法打开日志过滤工具: {str(e)}\n\n详细信息:\n{error_details}")
     
     def close(self):
-        """关闭应用"""
-        self._save_config()
-        self.monitor.stop_all()
-        self.root.destroy()
+        """关闭应用，确保资源正确清理"""
+        try:
+            # 保存配置
+            self._save_config()
+        except Exception as e:
+            print(f"保存配置时出错: {e}")
+        
+        try:
+            # 停止所有串口监控
+            self.monitor.stop_all()
+        except Exception as e:
+            print(f"停止串口监控时出错: {e}")
+        
+        try:
+            # 销毁窗口
+            self.root.destroy()
+        except Exception as e:
+            print(f"关闭窗口时出错: {e}")
 
 
 def main():
