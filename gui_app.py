@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext, messagebox, font
 import threading
 import json
 import os
@@ -52,6 +52,13 @@ class SerialToolGUI:
         self.root = root
         self.root.title(f"多串口监控工具 v{VERSION}")
         self.root.geometry("1200x800")
+        
+        # 主题状态：默认浅色主题
+        self.is_dark_theme = False
+        
+        # 配置现代化主题
+        self._configure_modern_theme()
+        
         # 设置默认全屏
         self.root.state('zoomed')
         
@@ -84,6 +91,173 @@ class SerialToolGUI:
         # 优化：延迟启动非关键任务
         self.root.after(100, self._delayed_init)
     
+    def _configure_modern_theme(self):
+        """配置现代化主题样式 - 支持深浅切换"""
+        if self.is_dark_theme:
+            self._apply_dark_theme()
+        else:
+            self._apply_light_theme()
+    
+    def _apply_light_theme(self):
+        """应用浅色主题 - 极度柔和护眼"""
+        # 设置极柔和的背景色
+        self.root.configure(bg='#f5f5f5')
+        
+        # 配置ttk样式
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # 配置Frame样式 - 极柔和色调
+        style.configure('TFrame', background='#f5f5f5')
+        style.configure('TLabelframe', background='#f5f5f5', borderwidth=0, relief='flat')
+        style.configure('TLabelframe.Label', background='#f5f5f5', foreground='#757575',
+                       font=('Microsoft YaHei UI', 10, 'bold'))
+        
+        # 配置Button样式 - 极柔和的灰蓝色调
+        style.configure('TButton',
+                       background='#e8e8e8',
+                       foreground='#666666',
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=('Microsoft YaHei UI', 9),
+                       padding=(10, 6))
+        style.map('TButton',
+                 background=[('active', '#d8d8d8'), ('pressed', '#c8c8c8')],
+                 foreground=[('active', '#555555'), ('pressed', '#444444')])
+        
+        # 配置Combobox样式 - 柔和边框
+        style.configure('TCombobox',
+                       fieldbackground='#fafafa',
+                       background='#fafafa',
+                       foreground='#606060',
+                       borderwidth=0,
+                       relief='flat')
+        style.map('TCombobox',
+                 foreground=[('readonly', '#606060')])
+        
+        # 配置Label样式 - 柔和文字
+        style.configure('TLabel', background='#f5f5f5', foreground='#757575',
+                       font=('Microsoft YaHei UI', 9))
+        
+        # 配置Entry样式 - 无边框
+        style.configure('TEntry',
+                       fieldbackground='#fafafa',
+                       foreground='#606060',
+                       borderwidth=0,
+                       relief='flat')
+        
+        # 存储浅色主题配色 - 极度柔和
+        self.theme_colors = {
+            'bg': '#f5f5f5',
+            'text_bg': '#fafafa',
+            'text_fg': '#606060',
+            'stats_bg': '#f0f0f0',
+            'stats_fg': '#707070',
+            'status_bg': '#f0f0f0',
+            'status_fg': '#808080',
+            'version_fg': '#a0a0a0',
+            'timestamp': '#a0a0a0',
+            'default': '#606060',
+            'error': '#c08080',
+            'warning': '#c0a080',
+            'success': '#80b080',
+            'port_colors': {
+                'BRIGHT_BLUE': '#8fa5be',
+                'BRIGHT_GREEN': '#98b89a',
+                'BRIGHT_CYAN': '#8fb8be',
+                'BRIGHT_MAGENTA': '#be98b8',
+                'BRIGHT_YELLOW': '#c0b898',
+                'BRIGHT_RED': '#c09898',
+                'BLUE': '#8595b0',
+                'GREEN': '#88a888',
+                'CYAN': '#85a8b0',
+                'MAGENTA': '#a888a8',
+            },
+            'stats_port': '#8fa5be',
+            'stats_bytes': '#98b89a',
+            'stats_separator': '#b0b0b0'
+        }
+    
+    def _apply_dark_theme(self):
+        """应用深色主题 - 极度柔和护眼"""
+        # 设置柔和的深色背景
+        self.root.configure(bg='#2a2a2a')
+        
+        # 配置ttk样式
+        style = ttk.Style()
+        style.theme_use('clam')
+        
+        # 配置Frame样式 - 柔和深色
+        style.configure('TFrame', background='#2a2a2a')
+        style.configure('TLabelframe', background='#2a2a2a', borderwidth=0, relief='flat')
+        style.configure('TLabelframe.Label', background='#2a2a2a', foreground='#b0b0b0',
+                       font=('Microsoft YaHei UI', 10, 'bold'))
+        
+        # 配置Button样式 - 柔和深色
+        style.configure('TButton',
+                       background='#3a3a3a',
+                       foreground='#a0a0a0',
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=('Microsoft YaHei UI', 9),
+                       padding=(10, 6))
+        style.map('TButton',
+                 background=[('active', '#454545'), ('pressed', '#505050')],
+                 foreground=[('active', '#b0b0b0'), ('pressed', '#c0c0c0')])
+        
+        # 配置Combobox样式 - 柔和深色
+        style.configure('TCombobox',
+                       fieldbackground='#353535',
+                       background='#353535',
+                       foreground='#d8d8d8',
+                       borderwidth=0,
+                       relief='flat')
+        style.map('TCombobox',
+                 foreground=[('readonly', '#d8d8d8')])
+        
+        # 配置Label样式 - 柔和深色
+        style.configure('TLabel', background='#2a2a2a', foreground='#a0a0a0',
+                       font=('Microsoft YaHei UI', 9))
+        
+        # 配置Entry样式 - 柔和深色
+        style.configure('TEntry',
+                       fieldbackground='#353535',
+                       foreground='#d8d8d8',
+                       borderwidth=0,
+                       relief='flat')
+        
+        # 存储深色主题配色 - 极度柔和
+        self.theme_colors = {
+            'bg': '#2a2a2a',
+            'text_bg': '#303030',
+            'text_fg': '#d8d8d8',
+            'stats_bg': '#353535',
+            'stats_fg': '#d0d0d0',
+            'status_bg': '#353535',
+            'status_fg': '#c0c0c0',
+            'version_fg': '#a0a0a0',
+            'timestamp': '#b0b0b0',
+            'default': '#d8d8d8',
+            'error': '#d89090',
+            'warning': '#d8b890',
+            'success': '#90c090',
+            'port_colors': {
+                'BRIGHT_BLUE': '#8fa5c0',
+                'BRIGHT_GREEN': '#90b890',
+                'BRIGHT_CYAN': '#85b5c0',
+                'BRIGHT_MAGENTA': '#b890b8',
+                'BRIGHT_YELLOW': '#c0b890',
+                'BRIGHT_RED': '#c08585',
+                'BLUE': '#7590b0',
+                'GREEN': '#7da87d',
+                'CYAN': '#7da8b0',
+                'MAGENTA': '#a87da8',
+            },
+            'stats_port': '#8fa5c0',
+            'stats_bytes': '#90b890',
+            'stats_separator': '#707070'
+        }
+    
     def _delayed_init(self):
         """延迟初始化非关键组件"""
         self._update_available_ports()
@@ -98,19 +272,19 @@ class SerialToolGUI:
         # 优化：使用after延迟初始化统计显示，减少启动时间
         self._stats_display_created = False
         
-        # 左侧控制面板
-        left_panel = ttk.Frame(main_container, width=400)
-        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=(5, 2))
+        # 左侧控制面板 - 增加宽度和边距
+        left_panel = ttk.Frame(main_container, width=420)
+        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 10))
         left_panel.pack_propagate(False)  # 防止自动收缩
         
         # 右侧数据显示区域
         right_panel = ttk.Frame(main_container)
-        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(2, 5))
+        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 0))
         
         # === 左侧面板内容 ===
-        # 串口控制区
-        control_frame = ttk.LabelFrame(left_panel, text="串口控制", padding=10)
-        control_frame.pack(fill=tk.X, pady=(0, 5))
+        # 串口控制区 - 增加内边距
+        control_frame = ttk.LabelFrame(left_panel, text="🔌 串口控制", padding=15)
+        control_frame.pack(fill=tk.X, pady=(0, 8))
         
         # 串口选择
         port_frame = ttk.Frame(control_frame)
@@ -166,9 +340,15 @@ class SerialToolGUI:
         ttk.Button(btn_frame2, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(btn_frame2, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 高级工具按钮区
-        tools_frame = ttk.LabelFrame(control_frame, text="高级工具", padding=5)
-        tools_frame.pack(fill=tk.X, pady=5)
+        # 主题切换按钮
+        theme_frame = ttk.Frame(control_frame)
+        theme_frame.pack(fill=tk.X, pady=5)
+        self.theme_button = ttk.Button(theme_frame, text="🌙 深色模式", command=self._toggle_theme)
+        self.theme_button.pack(fill=tk.X)
+        
+        # 高级工具按钮区 - 使用图标和更好的标题
+        tools_frame = ttk.LabelFrame(control_frame, text="🛠️ 高级工具", padding=10)
+        tools_frame.pack(fill=tk.X, pady=8)
         
         # 第一行工具按钮
         tools_row1 = ttk.Frame(tools_frame)
@@ -188,9 +368,9 @@ class SerialToolGUI:
         ttk.Button(tools_row3, text="🤖 自动化测试", command=self._open_automation).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(tools_row3, text="🔧 实用工具", command=self._open_utilities).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 批量操作区
-        batch_frame = ttk.LabelFrame(left_panel, text="批量操作", padding=10)
-        batch_frame.pack(fill=tk.X, pady=5)
+        # 批量操作区 - 使用图标
+        batch_frame = ttk.LabelFrame(left_panel, text="⚡ 批量操作", padding=12)
+        batch_frame.pack(fill=tk.X, pady=8)
         
         ttk.Button(batch_frame, text="添加到批量配置", command=self._add_to_batch).pack(fill=tk.X, pady=2)
         ttk.Button(batch_frame, text="🚀 快速启动批量配置", command=self._start_batch).pack(fill=tk.X, pady=2)
@@ -200,9 +380,9 @@ class SerialToolGUI:
         ttk.Button(batch_btn_frame, text="查看配置", command=self._show_batch_configs).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(batch_btn_frame, text="清空配置", command=self._clear_batch).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 发送数据区 - 移到活动串口列表之前
-        send_frame = ttk.LabelFrame(left_panel, text="发送数据", padding=10)
-        send_frame.pack(fill=tk.X, pady=5)
+        # 发送数据区 - 移到活动串口列表之前，使用图标
+        send_frame = ttk.LabelFrame(left_panel, text="📤 发送数据", padding=12)
+        send_frame.pack(fill=tk.X, pady=8)
         
         send_port_frame = ttk.Frame(send_frame)
         send_port_frame.pack(fill=tk.X, pady=2)
@@ -234,73 +414,185 @@ class SerialToolGUI:
         ttk.Button(send_btn_frame, text="保存预设", command=self._save_preset_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         ttk.Button(send_btn_frame, text="删除预设", command=self._delete_preset_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        # 活动串口列表 - 移到发送数据区之后
-        active_frame = ttk.LabelFrame(left_panel, text="活动串口", padding=10)
-        active_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        # 活动串口列表 - 移到发送数据区之后，使用图标
+        active_frame = ttk.LabelFrame(left_panel, text="📊 活动串口", padding=10)
+        active_frame.pack(fill=tk.BOTH, expand=True, pady=8)
         
-        self.active_list = tk.Listbox(active_frame, height=4)
+        self.active_list = tk.Listbox(
+            active_frame,
+            height=4,
+            background=self.theme_colors['text_bg'],
+            foreground=self.theme_colors['text_fg'],
+            selectbackground=self.theme_colors['stats_bg'],
+            selectforeground=self.theme_colors['text_fg'],
+            relief=tk.FLAT,
+            borderwidth=0,
+            highlightthickness=0
+        )
         self.active_list.pack(fill=tk.BOTH, expand=True)
         
         # === 右侧数据显示区 ===
-        display_frame = ttk.LabelFrame(right_panel, text="数据显示", padding=10)
+        display_frame = ttk.LabelFrame(right_panel, text="📺 数据显示", padding=12)
         display_frame.pack(fill=tk.BOTH, expand=True)
         
-        self.text_display = scrolledtext.ScrolledText(display_frame, wrap=tk.WORD)
+        # 使用柔和的文本显示区域
+        self.text_display = scrolledtext.ScrolledText(
+            display_frame,
+            wrap=tk.WORD,
+            font=('Consolas', 10),
+            background=self.theme_colors['text_bg'],
+            foreground=self.theme_colors['text_fg'],
+            insertbackground=self.theme_colors['text_fg'],
+            relief=tk.FLAT,
+            borderwidth=0,
+            padx=12,
+            pady=12,
+            highlightthickness=0
+        )
         self.text_display.pack(fill=tk.BOTH, expand=True)
         
-        # 配置基本颜色标签
-        self.text_display.tag_config("timestamp", foreground="gray")
-        self.text_display.tag_config("default", foreground="black")
-        self.text_display.tag_config("error", foreground="#FF5555", font=("TkDefaultFont", 9, "bold"))
-        self.text_display.tag_config("warning", foreground="#FFAA00", font=("TkDefaultFont", 9, "bold"))
-        self.text_display.tag_config("success", foreground="#55FF55")
+        # 配置柔和的颜色标签
+        self.text_display.tag_config("timestamp", foreground=self.theme_colors['timestamp'], font=('Consolas', 9))
+        self.text_display.tag_config("default", foreground=self.theme_colors['default'])
+        self.text_display.tag_config("error", foreground=self.theme_colors['error'], font=('Consolas', 10, "bold"))
+        self.text_display.tag_config("warning", foreground=self.theme_colors['warning'], font=('Consolas', 10, "bold"))
+        self.text_display.tag_config("success", foreground=self.theme_colors['success'])
         
         # 动态端口颜色映射
         self.port_color_tags = {}
         self._init_color_tags()
         
-        # 数据统计显示区域（在数据显示区下方） - 优化：延迟创建
-        self.stats_frame = ttk.LabelFrame(right_panel, text="数据统计", padding=5)
-        self.stats_frame.pack(fill=tk.X, pady=(5, 0))
+        # 数据统计显示区域（在数据显示区下方） - 优化：延迟创建，使用图标
+        self.stats_frame = ttk.LabelFrame(right_panel, text="📈 数据统计", padding=10)
+        self.stats_frame.pack(fill=tk.X, pady=(10, 0))
         
-        # 使用Text widget来显示统计信息，支持多行
-        self.stats_display = tk.Text(self.stats_frame, height=3, wrap=tk.WORD, state=tk.DISABLED,
-                                      background='#f0f0f0', relief=tk.FLAT)
+        # 使用Text widget来显示统计信息，支持多行 - 柔和样式
+        self.stats_display = tk.Text(
+            self.stats_frame,
+            height=3,
+            wrap=tk.WORD,
+            state=tk.DISABLED,
+            background=self.theme_colors['stats_bg'],
+            foreground=self.theme_colors['stats_fg'],
+            relief=tk.FLAT,
+            borderwidth=0,
+            highlightthickness=0,
+            font=('Microsoft YaHei UI', 9),
+            padx=10,
+            pady=5
+        )
         self.stats_display.pack(fill=tk.X)
         
         # 优化：延迟配置颜色标签
         self._stats_tags_configured = False
         
-        # 状态栏
+        # 状态栏 - 柔和样式
         status_frame = ttk.Frame(self.root)
-        status_frame.pack(fill=tk.X, side=tk.BOTTOM)
+        status_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
         
-        self.status_var = tk.StringVar(value="就绪")
-        status_bar = ttk.Label(status_frame, textvariable=self.status_var, relief=tk.SUNKEN)
+        self.status_var = tk.StringVar(value="✓ 就绪")
+        status_bar = ttk.Label(
+            status_frame,
+            textvariable=self.status_var,
+            relief=tk.FLAT,
+            background=self.theme_colors['status_bg'],
+            foreground=self.theme_colors['success'],
+            font=('Microsoft YaHei UI', 9),
+            padding=(10, 5)
+        )
         status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        # 版本信息标签
+        # 版本信息标签 - 柔和的样式
         version_text = f"v{VERSION}"
         if BUILD_TIME:
-            version_text += f" (编译: {BUILD_TIME})"
-        version_label = ttk.Label(status_frame, text=version_text, relief=tk.SUNKEN, foreground="gray")
+            version_text += f" · {BUILD_TIME}"
+        version_label = ttk.Label(
+            status_frame,
+            text=version_text,
+            relief=tk.FLAT,
+            background=self.theme_colors['status_bg'],
+            foreground=self.theme_colors['version_fg'],
+            font=('Microsoft YaHei UI', 8),
+            padding=(10, 5)
+        )
         version_label.pack(side=tk.RIGHT, padx=5)
+    
+    def _toggle_theme(self):
+        """切换深浅主题"""
+        self.is_dark_theme = not self.is_dark_theme
+        
+        # 更新按钮文本
+        if self.is_dark_theme:
+            self.theme_button.config(text="☀️ 浅色模式")
+        else:
+            self.theme_button.config(text="🌙 深色模式")
+        
+        # 重新应用主题
+        self._configure_modern_theme()
+        
+        # 更新所有组件的颜色
+        self._update_widget_colors()
+        
+        # 保存主题设置到配置
+        self._save_config()
+        
+        self.status_var.set(f"已切换到{'深色' if self.is_dark_theme else '浅色'}模式")
+    
+    def _update_widget_colors(self):
+        """更新所有组件的颜色"""
+        # 更新文本显示区域
+        self.text_display.config(
+            background=self.theme_colors['text_bg'],
+            foreground=self.theme_colors['text_fg'],
+            insertbackground=self.theme_colors['text_fg']
+        )
+        
+        # 重新配置文本标签颜色
+        self.text_display.tag_config("timestamp", foreground=self.theme_colors['timestamp'])
+        self.text_display.tag_config("default", foreground=self.theme_colors['default'])
+        self.text_display.tag_config("error", foreground=self.theme_colors['error'])
+        self.text_display.tag_config("warning", foreground=self.theme_colors['warning'])
+        self.text_display.tag_config("success", foreground=self.theme_colors['success'])
+        
+        # 更新端口颜色
+        self.color_map = self.theme_colors['port_colors']
+        for port, tag_name in self.port_color_tags.items():
+            color_names = [
+                'BRIGHT_BLUE', 'BRIGHT_GREEN', 'BRIGHT_CYAN',
+                'BRIGHT_MAGENTA', 'BRIGHT_YELLOW', 'BRIGHT_RED',
+                'BLUE', 'GREEN', 'CYAN', 'MAGENTA'
+            ]
+            index = hash(port) % len(color_names)
+            color_name = color_names[index]
+            self.text_display.tag_config(tag_name, foreground=self.color_map[color_name])
+        
+        # 更新统计显示区域
+        self.stats_display.config(
+            background=self.theme_colors['stats_bg'],
+            foreground=self.theme_colors['stats_fg']
+        )
+        
+        # 重新配置统计标签（如果已配置）
+        if self._stats_tags_configured:
+            self.stats_display.tag_config("port_name", foreground=self.theme_colors['stats_port'])
+            self.stats_display.tag_config("bytes", foreground=self.theme_colors['stats_bytes'])
+            self.stats_display.tag_config("separator", foreground=self.theme_colors['stats_separator'])
+        
+        # 更新Listbox颜色
+        self.active_list.config(
+            background=self.theme_colors['text_bg'],
+            foreground=self.theme_colors['text_fg'],
+            selectbackground=self.theme_colors['stats_bg'],
+            selectforeground=self.theme_colors['text_fg']
+        )
+        
+        # 强制刷新显示
+        self.root.update_idletasks()
     
     def _init_color_tags(self):
         """初始化颜色标签映射"""
-        # 定义Tkinter可用的颜色（对应ANSI颜色）
-        self.color_map = {
-            'BRIGHT_BLUE': '#5555FF',
-            'BRIGHT_GREEN': '#55FF55',
-            'BRIGHT_CYAN': '#55FFFF',
-            'BRIGHT_MAGENTA': '#FF55FF',
-            'BRIGHT_YELLOW': '#FFFF55',
-            'BRIGHT_RED': '#FF5555',
-            'BLUE': '#0000AA',
-            'GREEN': '#00AA00',
-            'CYAN': '#00AAAA',
-            'MAGENTA': '#AA00AA',
-        }
+        # 从主题配色中获取端口颜色
+        self.color_map = self.theme_colors['port_colors']
     
     def _get_port_color_tag(self, port: str) -> str:
         """获取或创建端口的颜色标签"""
@@ -811,6 +1103,9 @@ class SerialToolGUI:
                 'regex': self.regex_var.get(),
                 'send_data': self.send_data_var.get()
             },
+            'theme': {
+                'is_dark': self.is_dark_theme
+            },
             'preset_data': self.preset_data_list,
             'batch_configs': self.batch_port_configs
         }
@@ -841,6 +1136,17 @@ class SerialToolGUI:
                     self.regex_var.set(default_settings['regex'])
                 if 'send_data' in default_settings:
                     self.send_data_var.set(default_settings['send_data'])
+                
+                # 加载主题设置
+                theme_settings = config.get('theme', {})
+                if 'is_dark' in theme_settings:
+                    self.is_dark_theme = theme_settings['is_dark']
+                    # 更新主题按钮文本
+                    if hasattr(self, 'theme_button'):
+                        if self.is_dark_theme:
+                            self.theme_button.config(text="☀️ 浅色模式")
+                        else:
+                            self.theme_button.config(text="🌙 深色模式")
                 
                 # 加载预设数据
                 self.preset_data_list = config.get('preset_data', [])
@@ -877,9 +1183,9 @@ class SerialToolGUI:
         try:
             # 首次调用时配置颜色标签
             if not self._stats_tags_configured:
-                self.stats_display.tag_config("port_name", foreground="blue", font=("TkDefaultFont", 9, "bold"))
-                self.stats_display.tag_config("bytes", foreground="green", font=("TkDefaultFont", 9))
-                self.stats_display.tag_config("separator", foreground="gray")
+                self.stats_display.tag_config("port_name", foreground=self.theme_colors['stats_port'], font=("Microsoft YaHei UI", 9, "bold"))
+                self.stats_display.tag_config("bytes", foreground=self.theme_colors['stats_bytes'], font=("Microsoft YaHei UI", 9, "bold"))
+                self.stats_display.tag_config("separator", foreground=self.theme_colors['stats_separator'])
                 self._stats_tags_configured = True
             
             # 获取所有串口的统计信息
