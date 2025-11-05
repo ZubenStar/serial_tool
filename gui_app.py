@@ -51,10 +51,11 @@ class SerialToolGUI:
     def __init__(self, root):
         self.root = root
         self.root.title(f"多串口监控工具 v{VERSION}")
-        self.root.geometry("1200x800")
+        self.root.geometry("1400x900")
+        self.root.minsize(1200, 800)
         
-        # 主题状态：默认浅色主题
-        self.is_dark_theme = False
+        # 主题状态：默认深色主题
+        self.is_dark_theme = True
         
         # 配置现代化主题
         self._configure_modern_theme()
@@ -99,163 +100,163 @@ class SerialToolGUI:
             self._apply_light_theme()
     
     def _apply_light_theme(self):
-        """应用浅色主题 - 极度柔和护眼"""
-        # 设置极柔和的背景色
-        self.root.configure(bg='#f5f5f5')
+        """应用浅色主题 - 现代清新护眼设计"""
+        # 设置清新的背景色
+        self.root.configure(bg='#f8f9fa')
         
         # 配置ttk样式
         style = ttk.Style()
         style.theme_use('clam')
         
-        # 配置Frame样式 - 极柔和色调
-        style.configure('TFrame', background='#f5f5f5')
-        style.configure('TLabelframe', background='#f5f5f5', borderwidth=0, relief='flat')
-        style.configure('TLabelframe.Label', background='#f5f5f5', foreground='#757575',
-                       font=('Microsoft YaHei UI', 10, 'bold'))
+        # 配置Frame样式 - 现代简洁
+        style.configure('TFrame', background='#f8f9fa')
+        style.configure('TLabelframe', background='#ffffff', borderwidth=1, relief='solid')
+        style.configure('TLabelframe.Label', background='#ffffff', foreground='#495057',
+                       font=('Microsoft YaHei UI', 11, 'bold'))
         
-        # 配置Button样式 - 极柔和的灰蓝色调
+        # 配置Button样式 - 现代蓝色调
         style.configure('TButton',
-                       background='#e8e8e8',
-                       foreground='#666666',
+                       background='#007bff',
+                       foreground='#ffffff',
                        borderwidth=0,
                        focuscolor='none',
-                       font=('Microsoft YaHei UI', 9),
-                       padding=(10, 6))
+                       font=('Microsoft YaHei UI', 10, 'bold'),
+                       padding=(14, 10))
         style.map('TButton',
-                 background=[('active', '#d8d8d8'), ('pressed', '#c8c8c8')],
-                 foreground=[('active', '#555555'), ('pressed', '#444444')])
+                 background=[('active', '#0056b3'), ('pressed', '#004085')],
+                 foreground=[('active', '#ffffff'), ('pressed', '#ffffff')])
         
-        # 配置Combobox样式 - 柔和边框
+        # 配置Combobox样式 - 现代边框
         style.configure('TCombobox',
-                       fieldbackground='#fafafa',
-                       background='#fafafa',
-                       foreground='#606060',
-                       borderwidth=0,
-                       relief='flat')
+                       fieldbackground='#ffffff',
+                       background='#ffffff',
+                       foreground='#495057',
+                       borderwidth=1,
+                       relief='solid')
         style.map('TCombobox',
-                 foreground=[('readonly', '#606060')])
+                 foreground=[('readonly', '#495057')])
         
-        # 配置Label样式 - 柔和文字
-        style.configure('TLabel', background='#f5f5f5', foreground='#757575',
-                       font=('Microsoft YaHei UI', 9))
+        # 配置Label样式 - 清晰文字
+        style.configure('TLabel', background='#f8f9fa', foreground='#495057',
+                       font=('Microsoft YaHei UI', 10))
         
-        # 配置Entry样式 - 无边框
+        # 配置Entry样式 - 现代边框
         style.configure('TEntry',
-                       fieldbackground='#fafafa',
-                       foreground='#606060',
-                       borderwidth=0,
-                       relief='flat')
+                       fieldbackground='#ffffff',
+                       foreground='#495057',
+                       borderwidth=1,
+                       relief='solid')
         
-        # 存储浅色主题配色 - 极度柔和
+        # 存储浅色主题配色 - 现代清新
         self.theme_colors = {
-            'bg': '#f5f5f5',
-            'text_bg': '#fafafa',
-            'text_fg': '#606060',
-            'stats_bg': '#f0f0f0',
-            'stats_fg': '#707070',
-            'status_bg': '#f0f0f0',
-            'status_fg': '#808080',
-            'version_fg': '#a0a0a0',
-            'timestamp': '#a0a0a0',
-            'default': '#606060',
-            'error': '#c08080',
-            'warning': '#c0a080',
-            'success': '#80b080',
+            'bg': '#f8f9fa',
+            'text_bg': '#ffffff',
+            'text_fg': '#212529',
+            'stats_bg': '#e9ecef',
+            'stats_fg': '#495057',
+            'status_bg': '#ffffff',
+            'status_fg': '#28a745',
+            'version_fg': '#6c757d',
+            'timestamp': '#6c757d',
+            'default': '#212529',
+            'error': '#dc3545',
+            'warning': '#ffc107',
+            'success': '#28a745',
             'port_colors': {
-                'BRIGHT_BLUE': '#8fa5be',
-                'BRIGHT_GREEN': '#98b89a',
-                'BRIGHT_CYAN': '#8fb8be',
-                'BRIGHT_MAGENTA': '#be98b8',
-                'BRIGHT_YELLOW': '#c0b898',
-                'BRIGHT_RED': '#c09898',
-                'BLUE': '#8595b0',
-                'GREEN': '#88a888',
-                'CYAN': '#85a8b0',
-                'MAGENTA': '#a888a8',
+                'BRIGHT_BLUE': '#007bff',
+                'BRIGHT_GREEN': '#28a745',
+                'BRIGHT_CYAN': '#17a2b8',
+                'BRIGHT_MAGENTA': '#6f42c1',
+                'BRIGHT_YELLOW': '#fd7e14',
+                'BRIGHT_RED': '#dc3545',
+                'BLUE': '#0056b3',
+                'GREEN': '#218838',
+                'CYAN': '#138496',
+                'MAGENTA': '#5a32a3',
             },
-            'stats_port': '#8fa5be',
-            'stats_bytes': '#98b89a',
-            'stats_separator': '#b0b0b0'
+            'stats_port': '#007bff',
+            'stats_bytes': '#28a745',
+            'stats_separator': '#6c757d'
         }
     
     def _apply_dark_theme(self):
-        """应用深色主题 - 极度柔和护眼"""
-        # 设置柔和的深色背景
-        self.root.configure(bg='#2a2a2a')
+        """应用深色主题 - 现代深色设计"""
+        # 设置现代深色背景
+        self.root.configure(bg='#1e1e1e')
         
         # 配置ttk样式
         style = ttk.Style()
         style.theme_use('clam')
         
-        # 配置Frame样式 - 柔和深色
-        style.configure('TFrame', background='#2a2a2a')
-        style.configure('TLabelframe', background='#2a2a2a', borderwidth=0, relief='flat')
-        style.configure('TLabelframe.Label', background='#2a2a2a', foreground='#b0b0b0',
-                       font=('Microsoft YaHei UI', 10, 'bold'))
+        # 配置Frame样式 - 现代深色
+        style.configure('TFrame', background='#1e1e1e')
+        style.configure('TLabelframe', background='#2d2d2d', borderwidth=1, relief='solid')
+        style.configure('TLabelframe.Label', background='#2d2d2d', foreground='#d4d4d4',
+                       font=('Microsoft YaHei UI', 11, 'bold'))
         
-        # 配置Button样式 - 柔和深色
+        # 配置Button样式 - 现代蓝色调
         style.configure('TButton',
-                       background='#3a3a3a',
-                       foreground='#a0a0a0',
+                       background='#0e639c',
+                       foreground='#ffffff',
                        borderwidth=0,
                        focuscolor='none',
-                       font=('Microsoft YaHei UI', 9),
-                       padding=(10, 6))
+                       font=('Microsoft YaHei UI', 10, 'bold'),
+                       padding=(14, 10))
         style.map('TButton',
-                 background=[('active', '#454545'), ('pressed', '#505050')],
-                 foreground=[('active', '#b0b0b0'), ('pressed', '#c0c0c0')])
+                 background=[('active', '#1177bb'), ('pressed', '#1e88cf')],
+                 foreground=[('active', '#ffffff'), ('pressed', '#ffffff')])
         
-        # 配置Combobox样式 - 柔和深色
+        # 配置Combobox样式 - 现代深色
         style.configure('TCombobox',
-                       fieldbackground='#353535',
-                       background='#353535',
-                       foreground='#d8d8d8',
-                       borderwidth=0,
-                       relief='flat')
+                       fieldbackground='#2d2d2d',
+                       background='#2d2d2d',
+                       foreground='#d4d4d4',
+                       borderwidth=1,
+                       relief='solid')
         style.map('TCombobox',
-                 foreground=[('readonly', '#d8d8d8')])
+                 foreground=[('readonly', '#d4d4d4')])
         
-        # 配置Label样式 - 柔和深色
-        style.configure('TLabel', background='#2a2a2a', foreground='#a0a0a0',
-                       font=('Microsoft YaHei UI', 9))
+        # 配置Label样式 - 现代深色
+        style.configure('TLabel', background='#1e1e1e', foreground='#d4d4d4',
+                       font=('Microsoft YaHei UI', 10))
         
-        # 配置Entry样式 - 柔和深色
+        # 配置Entry样式 - 现代深色
         style.configure('TEntry',
-                       fieldbackground='#353535',
-                       foreground='#d8d8d8',
-                       borderwidth=0,
-                       relief='flat')
+                       fieldbackground='#2d2d2d',
+                       foreground='#d4d4d4',
+                       borderwidth=1,
+                       relief='solid')
         
-        # 存储深色主题配色 - 极度柔和
+        # 存储深色主题配色 - 现代深色
         self.theme_colors = {
-            'bg': '#2a2a2a',
-            'text_bg': '#303030',
-            'text_fg': '#d8d8d8',
-            'stats_bg': '#353535',
-            'stats_fg': '#d0d0d0',
-            'status_bg': '#353535',
-            'status_fg': '#c0c0c0',
-            'version_fg': '#a0a0a0',
-            'timestamp': '#b0b0b0',
-            'default': '#d8d8d8',
-            'error': '#d89090',
-            'warning': '#d8b890',
-            'success': '#90c090',
+            'bg': '#1e1e1e',
+            'text_bg': '#2d2d2d',
+            'text_fg': '#d4d4d4',
+            'stats_bg': '#252526',
+            'stats_fg': '#cccccc',
+            'status_bg': '#2d2d2d',
+            'status_fg': '#4ec9b0',
+            'version_fg': '#858585',
+            'timestamp': '#858585',
+            'default': '#d4d4d4',
+            'error': '#f48771',
+            'warning': '#dcdcaa',
+            'success': '#4ec9b0',
             'port_colors': {
-                'BRIGHT_BLUE': '#8fa5c0',
-                'BRIGHT_GREEN': '#90b890',
-                'BRIGHT_CYAN': '#85b5c0',
-                'BRIGHT_MAGENTA': '#b890b8',
-                'BRIGHT_YELLOW': '#c0b890',
-                'BRIGHT_RED': '#c08585',
-                'BLUE': '#7590b0',
-                'GREEN': '#7da87d',
-                'CYAN': '#7da8b0',
-                'MAGENTA': '#a87da8',
+                'BRIGHT_BLUE': '#569cd6',
+                'BRIGHT_GREEN': '#4ec9b0',
+                'BRIGHT_CYAN': '#4fc1ff',
+                'BRIGHT_MAGENTA': '#c586c0',
+                'BRIGHT_YELLOW': '#dcdcaa',
+                'BRIGHT_RED': '#f48771',
+                'BLUE': '#3f8dd6',
+                'GREEN': '#3fa9a0',
+                'CYAN': '#3fb1ef',
+                'MAGENTA': '#b576b0',
             },
-            'stats_port': '#8fa5c0',
-            'stats_bytes': '#90b890',
-            'stats_separator': '#707070'
+            'stats_port': '#569cd6',
+            'stats_bytes': '#4ec9b0',
+            'stats_separator': '#858585'
         }
     
     def _delayed_init(self):
@@ -264,172 +265,188 @@ class SerialToolGUI:
         self._start_stats_update_loop()
         
     def _create_widgets(self):
-        """创建界面组件 - 左右布局（优化：减少不必要的配置）"""
+        """创建界面组件 - 优化的左右布局，带滚动条"""
         # 创建主容器框架
         main_container = ttk.Frame(self.root)
-        main_container.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
         
         # 优化：使用after延迟初始化统计显示，减少启动时间
         self._stats_display_created = False
         
-        # 左侧控制面板 - 增加宽度和边距
-        left_panel = ttk.Frame(main_container, width=420)
-        left_panel.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 10))
-        left_panel.pack_propagate(False)  # 防止自动收缩
+        # 左侧面板容器 - 带滚动条
+        left_container = ttk.Frame(main_container, width=460)
+        left_container.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 15))
+        left_container.pack_propagate(False)
+        
+        # 创建Canvas和Scrollbar
+        self.left_canvas = tk.Canvas(
+            left_container,
+            background=self.theme_colors['bg'],
+            highlightthickness=0,
+            bd=0
+        )
+        scrollbar = ttk.Scrollbar(left_container, orient="vertical", command=self.left_canvas.yview)
+        left_panel = ttk.Frame(self.left_canvas)
+        
+        # 配置滚动
+        left_panel.bind(
+            "<Configure>",
+            lambda e: self.left_canvas.configure(scrollregion=self.left_canvas.bbox("all"))
+        )
+        
+        canvas_window = self.left_canvas.create_window((0, 0), window=left_panel, anchor="nw")
+        
+        # 绑定宽度调整
+        def _configure_canvas_width(event):
+            self.left_canvas.itemconfig(canvas_window, width=event.width)
+        self.left_canvas.bind("<Configure>", _configure_canvas_width)
+        
+        self.left_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # 布局Canvas和Scrollbar - 移除padding
+        scrollbar.pack(side="right", fill="y")
+        self.left_canvas.pack(side="left", fill="both", expand=True)
+        
+        # 鼠标滚轮绑定
+        def _on_mousewheel(event):
+            self.left_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        self.left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
         # 右侧数据显示区域
         right_panel = ttk.Frame(main_container)
         right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 0))
         
         # === 左侧面板内容 ===
-        # 串口控制区 - 增加内边距
+        # 串口控制区 - 紧凑布局
         control_frame = ttk.LabelFrame(left_panel, text="🔌 串口控制", padding=15)
         control_frame.pack(fill=tk.X, pady=(0, 8))
         
         # 串口选择
         port_frame = ttk.Frame(control_frame)
-        port_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(port_frame, text="串口:").pack(side=tk.LEFT)
+        port_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(port_frame, text="串口:", font=('Microsoft YaHei UI', 10, 'bold')).pack(side=tk.LEFT, padx=(0, 10))
         self.port_var = tk.StringVar()
-        self.port_combo = ttk.Combobox(port_frame, textvariable=self.port_var, width=12)
-        self.port_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
-        ttk.Button(port_frame, text="刷新", command=self._update_available_ports, width=6).pack(side=tk.LEFT)
+        self.port_combo = ttk.Combobox(port_frame, textvariable=self.port_var, width=16, font=('Microsoft YaHei UI', 10))
+        self.port_combo.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
+        ttk.Button(port_frame, text="🔄", command=self._update_available_ports, width=5).pack(side=tk.LEFT)
         
         # 波特率
         baud_frame = ttk.Frame(control_frame)
-        baud_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(baud_frame, text="波特率:").pack(side=tk.LEFT)
-        self.baudrate_var = tk.StringVar(value="9600")
-        baudrate_combo = ttk.Combobox(baud_frame, textvariable=self.baudrate_var, width=12,
+        baud_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(baud_frame, text="波特率:", font=('Microsoft YaHei UI', 10, 'bold')).pack(side=tk.LEFT, padx=(0, 10))
+        self.baudrate_var = tk.StringVar(value="115200")
+        baudrate_combo = ttk.Combobox(baud_frame, textvariable=self.baudrate_var, width=16,
+                                      font=('Microsoft YaHei UI', 10),
                                       values=["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600", "3000000"])
-        baudrate_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        baudrate_combo.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
         self.baudrate_var.trace_add('write', self._on_config_change)
         
         # 关键词过滤
         kw_frame = ttk.Frame(control_frame)
-        kw_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(kw_frame, text="关键词:").pack(anchor=tk.W)
+        kw_frame.pack(fill=tk.X, pady=8)
+        ttk.Label(kw_frame, text="🔍 关键词过滤", font=('Microsoft YaHei UI', 10, 'bold')).pack(anchor=tk.W, pady=(0, 6))
         self.keywords_var = tk.StringVar()
-        ttk.Entry(kw_frame, textvariable=self.keywords_var).pack(fill=tk.X, pady=2)
+        ttk.Entry(kw_frame, textvariable=self.keywords_var, font=('Microsoft YaHei UI', 10)).pack(fill=tk.X, pady=2)
         self.keywords_var.trace_add('write', self._on_config_change)
-        ttk.Label(kw_frame, text="(逗号分隔)", font=("TkDefaultFont", 8)).pack(anchor=tk.W)
+        ttk.Label(kw_frame, text="多个关键词用逗号分隔", font=("Microsoft YaHei UI", 9), foreground='#6c757d').pack(anchor=tk.W, pady=(4, 0))
         
         # 正则表达式
         regex_frame = ttk.Frame(control_frame)
-        regex_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(regex_frame, text="正则:").pack(anchor=tk.W)
+        regex_frame.pack(fill=tk.X, pady=8)
+        ttk.Label(regex_frame, text="📋 正则表达式", font=('Microsoft YaHei UI', 10, 'bold')).pack(anchor=tk.W, pady=(0, 6))
         self.regex_var = tk.StringVar()
-        ttk.Entry(regex_frame, textvariable=self.regex_var).pack(fill=tk.X, pady=2)
+        ttk.Entry(regex_frame, textvariable=self.regex_var, font=('Microsoft YaHei UI', 10)).pack(fill=tk.X, pady=2)
         self.regex_var.trace_add('write', self._on_config_change)
-        ttk.Label(regex_frame, text="(逗号分隔)", font=("TkDefaultFont", 8)).pack(anchor=tk.W)
+        ttk.Label(regex_frame, text="多个正则式用逗号分隔", font=("Microsoft YaHei UI", 9), foreground='#6c757d').pack(anchor=tk.W, pady=(4, 0))
         
         # 实时应用过滤按钮
         filter_apply_frame = ttk.Frame(control_frame)
-        filter_apply_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(filter_apply_frame, text="🔄 实时应用过滤", command=self._apply_filters_realtime).pack(fill=tk.X)
-        ttk.Label(filter_apply_frame, text="(无需重启串口)", font=("TkDefaultFont", 8), foreground="gray").pack(anchor=tk.W)
+        filter_apply_frame.pack(fill=tk.X, pady=10)
+        ttk.Button(filter_apply_frame, text="✨ 实时应用过滤", command=self._apply_filters_realtime).pack(fill=tk.X)
+        ttk.Label(filter_apply_frame, text="无需重启串口即可生效", font=("Microsoft YaHei UI", 9), foreground='#6c757d').pack(anchor=tk.W, pady=(6, 0))
         
         # 控制按钮
         btn_frame = ttk.Frame(control_frame)
-        btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(btn_frame, text="启动监控", command=self._start_monitor).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(btn_frame, text="停止监控", command=self._stop_monitor).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        btn_frame.pack(fill=tk.X, pady=12)
+        ttk.Button(btn_frame, text="▶️ 启动", command=self._start_monitor).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(btn_frame, text="⏸️ 停止", command=self._stop_monitor).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         btn_frame2 = ttk.Frame(control_frame)
-        btn_frame2.pack(fill=tk.X, pady=2)
-        ttk.Button(btn_frame2, text="停止所有", command=self._stop_all).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(btn_frame2, text="清除显示", command=self._clear_display).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        btn_frame2.pack(fill=tk.X, pady=4)
+        ttk.Button(btn_frame2, text="⏹️ 全部停止", command=self._stop_all).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(btn_frame2, text="🗑️ 清屏", command=self._clear_display).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         # 主题切换按钮
         theme_frame = ttk.Frame(control_frame)
-        theme_frame.pack(fill=tk.X, pady=5)
-        self.theme_button = ttk.Button(theme_frame, text="🌙 深色模式", command=self._toggle_theme)
+        theme_frame.pack(fill=tk.X, pady=12)
+        self.theme_button = ttk.Button(theme_frame, text="🌙 切换深色模式", command=self._toggle_theme)
         self.theme_button.pack(fill=tk.X)
         
-        # 高级工具按钮区 - 使用图标和更好的标题
-        tools_frame = ttk.LabelFrame(control_frame, text="🛠️ 高级工具", padding=10)
-        tools_frame.pack(fill=tk.X, pady=8)
-        
-        # 第一行工具按钮
-        tools_row1 = ttk.Frame(tools_frame)
-        tools_row1.pack(fill=tk.X, pady=2)
-        ttk.Button(tools_row1, text="📄 日志过滤", command=self._open_log_filter).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(tools_row1, text="📊 数据可视化", command=self._open_visualizer).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        
-        # 第二行工具按钮
-        tools_row2 = ttk.Frame(tools_frame)
-        tools_row2.pack(fill=tk.X, pady=2)
-        ttk.Button(tools_row2, text="🔍 数据分析", command=self._open_analyzer).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(tools_row2, text="🎬 录制回放", command=self._open_recorder).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        
-        # 第三行工具按钮
-        tools_row3 = ttk.Frame(tools_frame)
-        tools_row3.pack(fill=tk.X, pady=2)
-        ttk.Button(tools_row3, text="🤖 自动化测试", command=self._open_automation).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(tools_row3, text="🔧 实用工具", command=self._open_utilities).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        
-        # 批量操作区 - 使用图标
-        batch_frame = ttk.LabelFrame(left_panel, text="⚡ 批量操作", padding=12)
+        # 批量操作区
+        batch_frame = ttk.LabelFrame(left_panel, text="⚡ 批量操作", padding=15)
         batch_frame.pack(fill=tk.X, pady=8)
         
-        ttk.Button(batch_frame, text="添加到批量配置", command=self._add_to_batch).pack(fill=tk.X, pady=2)
-        ttk.Button(batch_frame, text="🚀 快速启动批量配置", command=self._start_batch).pack(fill=tk.X, pady=2)
+        ttk.Button(batch_frame, text="➕ 添加到批量", command=self._add_to_batch).pack(fill=tk.X, pady=5)
+        ttk.Button(batch_frame, text="🚀 启动全部", command=self._start_batch).pack(fill=tk.X, pady=5)
         
         batch_btn_frame = ttk.Frame(batch_frame)
-        batch_btn_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(batch_btn_frame, text="查看配置", command=self._show_batch_configs).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(batch_btn_frame, text="清空配置", command=self._clear_batch).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        batch_btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(batch_btn_frame, text="👁️ 查看", command=self._show_batch_configs).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(batch_btn_frame, text="🗑️ 清空", command=self._clear_batch).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
-        # 发送数据区 - 移到活动串口列表之前，使用图标
+        # 高级工具按钮区
+        tools_frame = ttk.LabelFrame(left_panel, text="🛠️ 高级工具", padding=15)
+        tools_frame.pack(fill=tk.X, pady=8)
+        
+        # 工具按钮
+        tools_row1 = ttk.Frame(tools_frame)
+        tools_row1.pack(fill=tk.X, pady=5)
+        ttk.Button(tools_row1, text="📄 日志过滤", command=self._open_log_filter).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(tools_row1, text="📊 可视化", command=self._open_visualizer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        
+        tools_row2 = ttk.Frame(tools_frame)
+        tools_row2.pack(fill=tk.X, pady=5)
+        ttk.Button(tools_row2, text="🔍 数据分析", command=self._open_analyzer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(tools_row2, text="🎬 录制回放", command=self._open_recorder).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        
+        tools_row3 = ttk.Frame(tools_frame)
+        tools_row3.pack(fill=tk.X, pady=5)
+        ttk.Button(tools_row3, text="🤖 自动化", command=self._open_automation).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(tools_row3, text="🔧 工具箱", command=self._open_utilities).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        
+        # 发送数据区 - 紧凑布局
         send_frame = ttk.LabelFrame(left_panel, text="📤 发送数据", padding=12)
         send_frame.pack(fill=tk.X, pady=8)
         
         send_port_frame = ttk.Frame(send_frame)
-        send_port_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(send_port_frame, text="目标串口:").pack(side=tk.LEFT)
+        send_port_frame.pack(fill=tk.X, pady=3)
+        ttk.Label(send_port_frame, text="目标:", font=('Microsoft YaHei UI', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 8))
         self.send_port_var = tk.StringVar()
-        self.send_port_combo = ttk.Combobox(send_port_frame, textvariable=self.send_port_var, width=12)
-        self.send_port_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.send_port_combo = ttk.Combobox(send_port_frame, textvariable=self.send_port_var, width=14, font=('Microsoft YaHei UI', 9))
+        self.send_port_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # 预设数据选择
         preset_frame = ttk.Frame(send_frame)
-        preset_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(preset_frame, text="预设:").pack(side=tk.LEFT)
+        preset_frame.pack(fill=tk.X, pady=3)
+        ttk.Label(preset_frame, text="预设:", font=('Microsoft YaHei UI', 9, 'bold')).pack(side=tk.LEFT, padx=(0, 8))
         self.preset_var = tk.StringVar()
-        self.preset_combo = ttk.Combobox(preset_frame, textvariable=self.preset_var, width=12, state="readonly")
-        self.preset_combo.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        self.preset_combo = ttk.Combobox(preset_frame, textvariable=self.preset_var, width=14, state="readonly", font=('Microsoft YaHei UI', 9))
+        self.preset_combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.preset_combo.bind('<<ComboboxSelected>>', self._on_preset_selected)
         
         send_data_frame = ttk.Frame(send_frame)
-        send_data_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(send_data_frame, text="数据:").pack(anchor=tk.W)
+        send_data_frame.pack(fill=tk.X, pady=3)
+        ttk.Label(send_data_frame, text="数据:", font=('Microsoft YaHei UI', 9, 'bold')).pack(anchor=tk.W, pady=(0, 3))
         self.send_data_var = tk.StringVar()
-        ttk.Entry(send_data_frame, textvariable=self.send_data_var).pack(fill=tk.X, pady=2)
+        ttk.Entry(send_data_frame, textvariable=self.send_data_var, font=('Microsoft YaHei UI', 9)).pack(fill=tk.X)
         self.send_data_var.trace_add('write', self._on_config_change)
         
         # 按钮行：发送、保存预设、删除预设
         send_btn_frame = ttk.Frame(send_frame)
-        send_btn_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(send_btn_frame, text="发送", command=self._send_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(send_btn_frame, text="保存预设", command=self._save_preset_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        ttk.Button(send_btn_frame, text="删除预设", command=self._delete_preset_data).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
-        
-        # 活动串口列表 - 移到发送数据区之后，使用图标
-        active_frame = ttk.LabelFrame(left_panel, text="📊 活动串口", padding=10)
-        active_frame.pack(fill=tk.BOTH, expand=True, pady=8)
-        
-        self.active_list = tk.Listbox(
-            active_frame,
-            height=4,
-            background=self.theme_colors['text_bg'],
-            foreground=self.theme_colors['text_fg'],
-            selectbackground=self.theme_colors['stats_bg'],
-            selectforeground=self.theme_colors['text_fg'],
-            relief=tk.FLAT,
-            borderwidth=0,
-            highlightthickness=0
-        )
-        self.active_list.pack(fill=tk.BOTH, expand=True)
+        send_btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(send_btn_frame, text="📤 发送", command=self._send_data).pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
+        ttk.Button(send_btn_frame, text="💾 保存", command=self._save_preset_data).pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
+        ttk.Button(send_btn_frame, text="🗑️ 删除", command=self._delete_preset_data).pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
         
         # === 右侧数据显示区 ===
         display_frame = ttk.LabelFrame(right_panel, text="📺 数据显示", padding=12)
@@ -439,7 +456,7 @@ class SerialToolGUI:
         self.text_display = scrolledtext.ScrolledText(
             display_frame,
             wrap=tk.WORD,
-            font=('Consolas', 10),
+            font=('Consolas', 11),
             background=self.theme_colors['text_bg'],
             foreground=self.theme_colors['text_fg'],
             insertbackground=self.theme_colors['text_fg'],
@@ -462,9 +479,31 @@ class SerialToolGUI:
         self.port_color_tags = {}
         self._init_color_tags()
         
-        # 数据统计显示区域（在数据显示区下方） - 优化：延迟创建，使用图标
-        self.stats_frame = ttk.LabelFrame(right_panel, text="📈 数据统计", padding=10)
-        self.stats_frame.pack(fill=tk.X, pady=(10, 0))
+        # 底部信息区域容器
+        bottom_info_frame = ttk.Frame(right_panel)
+        bottom_info_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # 活动串口列表 - 左侧
+        active_frame = ttk.LabelFrame(bottom_info_frame, text="📊 活动串口", padding=10)
+        active_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        
+        self.active_list = tk.Listbox(
+            active_frame,
+            height=3,
+            background=self.theme_colors['text_bg'],
+            foreground=self.theme_colors['text_fg'],
+            selectbackground=self.theme_colors['stats_bg'],
+            selectforeground=self.theme_colors['text_fg'],
+            relief=tk.FLAT,
+            borderwidth=0,
+            highlightthickness=0,
+            font=('Microsoft YaHei UI', 9)
+        )
+        self.active_list.pack(fill=tk.BOTH, expand=True)
+        
+        # 数据统计显示区域 - 右侧
+        self.stats_frame = ttk.LabelFrame(bottom_info_frame, text="📈 数据统计", padding=10)
+        self.stats_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(5, 0))
         
         # 使用Text widget来显示统计信息，支持多行 - 柔和样式
         self.stats_display = tk.Text(
@@ -477,45 +516,47 @@ class SerialToolGUI:
             relief=tk.FLAT,
             borderwidth=0,
             highlightthickness=0,
-            font=('Microsoft YaHei UI', 9),
+            font=('Microsoft YaHei UI', 10),
             padx=10,
             pady=5
         )
-        self.stats_display.pack(fill=tk.X)
+        self.stats_display.pack(fill=tk.BOTH, expand=True)
         
         # 优化：延迟配置颜色标签
         self._stats_tags_configured = False
         
-        # 状态栏 - 柔和样式
-        status_frame = ttk.Frame(self.root)
-        status_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
+        # 状态栏 - 使用tk.Label以支持背景色切换
+        self.status_frame = tk.Frame(self.root, background=self.theme_colors['bg'])
+        self.status_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=(5, 0))
         
         self.status_var = tk.StringVar(value="✓ 就绪")
-        status_bar = ttk.Label(
-            status_frame,
+        self.status_bar = tk.Label(
+            self.status_frame,
             textvariable=self.status_var,
             relief=tk.FLAT,
             background=self.theme_colors['status_bg'],
             foreground=self.theme_colors['success'],
-            font=('Microsoft YaHei UI', 9),
-            padding=(10, 5)
+            font=('Microsoft YaHei UI', 10),
+            padx=10,
+            pady=5
         )
-        status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # 版本信息标签 - 柔和的样式
         version_text = f"v{VERSION}"
         if BUILD_TIME:
             version_text += f" · {BUILD_TIME}"
-        version_label = ttk.Label(
-            status_frame,
+        self.version_label = tk.Label(
+            self.status_frame,
             text=version_text,
             relief=tk.FLAT,
             background=self.theme_colors['status_bg'],
             foreground=self.theme_colors['version_fg'],
             font=('Microsoft YaHei UI', 8),
-            padding=(10, 5)
+            padx=10,
+            pady=5
         )
-        version_label.pack(side=tk.RIGHT, padx=5)
+        self.version_label.pack(side=tk.RIGHT, padx=5)
     
     def _toggle_theme(self):
         """切换深浅主题"""
@@ -523,9 +564,9 @@ class SerialToolGUI:
         
         # 更新按钮文本
         if self.is_dark_theme:
-            self.theme_button.config(text="☀️ 浅色模式")
+            self.theme_button.config(text="☀️ 切换浅色模式")
         else:
-            self.theme_button.config(text="🌙 深色模式")
+            self.theme_button.config(text="🌙 切换深色模式")
         
         # 重新应用主题
         self._configure_modern_theme()
@@ -540,6 +581,24 @@ class SerialToolGUI:
     
     def _update_widget_colors(self):
         """更新所有组件的颜色"""
+        # 更新Canvas背景色
+        if hasattr(self, 'left_canvas'):
+            self.left_canvas.config(background=self.theme_colors['bg'])
+        
+        # 更新状态栏背景色
+        if hasattr(self, 'status_frame'):
+            self.status_frame.config(background=self.theme_colors['bg'])
+        if hasattr(self, 'status_bar'):
+            self.status_bar.config(
+                background=self.theme_colors['status_bg'],
+                foreground=self.theme_colors['success']
+            )
+        if hasattr(self, 'version_label'):
+            self.version_label.config(
+                background=self.theme_colors['status_bg'],
+                foreground=self.theme_colors['version_fg']
+            )
+        
         # 更新文本显示区域
         self.text_display.config(
             background=self.theme_colors['text_bg'],
