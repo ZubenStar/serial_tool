@@ -321,6 +321,51 @@ class SerialMonitor:
                 'total_bytes': self.total_bytes_received,
                 'port': self.port
             }
+    
+    def change_baudrate(self, new_baudrate: int) -> bool:
+        """动态修改波特率，无需停止串口监控
+        
+        Args:
+            new_baudrate: 新的波特率
+        
+        Returns:
+            bool: 修改是否成功
+        """
+        try:
+            if self.serial_conn and self.serial_conn.is_open:
+                # 保存当前状态
+                old_baudrate = self.baudrate
+                
+                # 修改波特率
+                self.serial_conn.baudrate = new_baudrate
+                self.baudrate = new_baudrate
+                
+                if self.enable_color:
+                    msg = f"{self.port_color}串口 {self.port} 波特率已从 {old_baudrate} 修改为 {new_baudrate}{Colors.RESET}"
+                else:
+                    msg = f"串口 {self.port} 波特率已从 {old_baudrate} 修改为 {new_baudrate}"
+                print(msg)
+                
+                # 记录到日志
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+                log_entry = f"[{timestamp}] [{self.port}] 波特率修改: {old_baudrate} -> {new_baudrate}"
+                self._write_log(log_entry)
+                
+                return True
+            else:
+                if self.enable_color:
+                    msg = f"{Colors.BRIGHT_RED}错误: 串口 {self.port} 未打开{Colors.RESET}"
+                else:
+                    msg = f"错误: 串口 {self.port} 未打开"
+                print(msg)
+                return False
+        except Exception as e:
+            if self.enable_color:
+                error_msg = f"{Colors.BRIGHT_RED}修改波特率失败{Colors.RESET} {self.port_color}{self.port}{Colors.RESET}: {Colors.RED}{e}{Colors.RESET}"
+            else:
+                error_msg = f"修改波特率失败 {self.port}: {e}"
+            print(error_msg)
+            return False
 
 
 class MultiSerialMonitor:
@@ -474,6 +519,34 @@ class MultiSerialMonitor:
         for port, monitor in self.monitors.items():
             stats[port] = monitor.get_stats()
         return stats
+    
+    def change_baudrate(self, port: str, new_baudrate: int) -> bool:
+        """修改指定串口的波特率
+        
+        Args:
+            port: 串口名称
+            new_baudrate: 新的波特率
+        
+        Returns:
+            bool: 修改是否成功
+        """
+        if port in self.monitors:
+            return self.monitors[port].change_baudrate(new_baudrate)
+        return False
+    
+    def change_all_baudrates(self, new_baudrate: int) -> Dict[str, bool]:
+        """修改所有活动串口的波特率
+        
+        Args:
+            new_baudrate: 新的波特率
+        
+        Returns:
+            Dict[str, bool]: 每个串口的修改结果
+        """
+        results = {}
+        for port in self.monitors.keys():
+            results[port] = self.change_baudrate(port, new_baudrate)
+        return results
     
     @staticmethod
     def list_available_ports() -> List[str]:

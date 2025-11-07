@@ -341,6 +341,12 @@ class SerialToolGUI:
         baudrate_combo.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
         self.baudrate_var.trace_add('write', self._on_config_change)
         
+        # 波特率修改按钮行
+        baudrate_btn_frame = ttk.Frame(control_frame)
+        baudrate_btn_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(baudrate_btn_frame, text="🔧 修改当前", command=self._change_current_baudrate).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(baudrate_btn_frame, text="🔧 修改全部", command=self._change_all_baudrates).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        
         # 关键词过滤
         kw_frame = ttk.Frame(control_frame)
         kw_frame.pack(fill=tk.X, pady=8)
@@ -1116,13 +1122,10 @@ class SerialToolGUI:
         self._update_active_list()
         
         if failed_ports:
-            msg = f"批量启动完成: 成功{success_count}个，失败{len(failed_ports)}个\n失败串口: {', '.join(failed_ports)}"
-            messagebox.showwarning("部分成功", msg)
+            msg = f"批量启动完成: 成功{success_count}个，失败{len(failed_ports)}个 | 失败串口: {', '.join(failed_ports)}"
+            self.status_var.set(msg)
         else:
-            msg = f"批量启动成功: 已启动{success_count}个串口"
-            messagebox.showinfo("成功", msg)
-        
-        self.status_var.set(f"批量启动完成: {success_count}个串口已就绪")
+            self.status_var.set(f"批量启动成功: 已启动{success_count}个串口")
     
     def _clear_batch(self):
         """清空批量配置"""
@@ -1351,6 +1354,99 @@ class SerialToolGUI:
             self.status_var.set("已打开实用工具箱")
         except Exception as e:
             messagebox.showerror("错误", f"无法打开实用工具箱: {str(e)}")
+    
+    def _change_current_baudrate(self):
+        """修改当前选中串口的波特率"""
+        port = self.port_var.get()
+        if not port:
+            messagebox.showwarning("警告", "请选择要修改波特率的串口")
+            return
+        
+        # 检查串口是否在运行
+        active_ports = self.monitor.get_active_ports()
+        if port not in active_ports:
+            messagebox.showwarning("警告", f"串口 {port} 未在监控中，无法修改波特率")
+            return
+        
+        try:
+            new_baudrate = int(self.baudrate_var.get())
+        except ValueError:
+            messagebox.showerror("错误", "波特率必须是数字")
+            return
+        
+        # 获取当前波特率
+        current_baudrate = self.port_configs.get(port, {}).get('baudrate', 'N/A')
+        
+        # 确认对话框
+        result = messagebox.askyesno(
+            "确认修改波特率",
+            f"确定要将串口 {port} 的波特率\n从 {current_baudrate} 修改为 {new_baudrate} 吗？\n\n此操作不会中断串口连接"
+        )
+        
+        if not result:
+            return
+        
+        # 执行修改
+        if self.monitor.change_baudrate(port, new_baudrate):
+            # 更新本地配置
+            if port in self.port_configs:
+                self.port_configs[port]['baudrate'] = new_baudrate
+            
+            # 更新活动串口列表显示
+            self._update_active_list()
+            
+            messagebox.showinfo("成功", f"串口 {port} 的波特率已成功修改为 {new_baudrate}")
+            self.status_var.set(f"已修改 {port} 波特率: {current_baudrate} → {new_baudrate}")
+        else:
+            messagebox.showerror("失败", f"修改串口 {port} 的波特率失败")
+    
+    def _change_all_baudrates(self):
+        """修改所有活动串口的波特率"""
+        active_ports = self.monitor.get_active_ports()
+        
+        if not active_ports:
+            messagebox.showwarning("警告", "当前没有活动的串口监控")
+            return
+        
+        try:
+            new_baudrate = int(self.baudrate_var.get())
+        except ValueError:
+            messagebox.showerror("错误", "波特率必须是数字")
+            return
+        
+        # 确认对话框
+        port_list = '\n'.join([f"  • {port} ({self.port_configs.get(port, {}).get('baudrate', 'N/A')} bps)" for port in active_ports])
+        result = messagebox.askyesno(
+            "确认批量修改波特率",
+            f"确定要将以下 {len(active_ports)} 个串口的波特率\n全部修改为 {new_baudrate} 吗？\n\n{port_list}\n\n此操作不会中断串口连接"
+        )
+        
+        if not result:
+            return
+        
+        # 执行批量修改
+        results = self.monitor.change_all_baudrates(new_baudrate)
+        
+        # 统计结果
+        success_count = sum(1 for success in results.values() if success)
+        failed_ports = [port for port, success in results.items() if not success]
+        
+        # 更新本地配置
+        for port, success in results.items():
+            if success and port in self.port_configs:
+                self.port_configs[port]['baudrate'] = new_baudrate
+        
+        # 更新活动串口列表显示
+        self._update_active_list()
+        
+        # 显示结果
+        if failed_ports:
+            msg = f"批量修改完成:\n成功: {success_count} 个\n失败: {len(failed_ports)} 个\n\n失败串口: {', '.join(failed_ports)}"
+            messagebox.showwarning("部分成功", msg)
+            self.status_var.set(f"批量修改波特率: 成功{success_count}个, 失败{len(failed_ports)}个")
+        else:
+            messagebox.showinfo("成功", f"已成功将所有 {success_count} 个串口的波特率修改为 {new_baudrate}")
+            self.status_var.set(f"已批量修改 {success_count} 个串口的波特率为 {new_baudrate}")
     
     def close(self):
         """关闭应用，确保资源正确清理"""
