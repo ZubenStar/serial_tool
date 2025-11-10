@@ -1041,19 +1041,31 @@ class SerialToolGUI:
         self._save_config()
     
     def _add_to_batch(self):
-        """将当前配置添加到批量配置列表"""
+        """将当前活动串口配置添加到批量配置列表"""
         port = self.port_var.get()
         if not port:
             messagebox.showwarning("警告", "请选择串口")
             return
         
-        try:
-            baudrate = int(self.baudrate_var.get())
-        except ValueError:
-            messagebox.showerror("错误", "波特率必须是数字")
-            return
-        
-        keywords, regex_patterns = self._get_filter_config()
+        # 优先使用活动串口的实际配置
+        active_ports = self.monitor.get_active_ports()
+        if port in active_ports and port in self.port_configs:
+            # 使用活动串口的实际运行配置
+            active_config = self.port_configs[port]
+            baudrate = active_config.get('baudrate', 9600)
+            keywords = active_config.get('keywords', [])
+            regex_patterns = active_config.get('regex', [])
+            config_source = "活动配置"
+        else:
+            # 串口未运行，使用UI输入的配置
+            try:
+                baudrate = int(self.baudrate_var.get())
+            except ValueError:
+                messagebox.showerror("错误", "波特率必须是数字")
+                return
+            
+            keywords, regex_patterns = self._get_filter_config()
+            config_source = "UI配置"
         
         # 检查是否已存在
         for config in self.batch_port_configs:
@@ -1070,7 +1082,7 @@ class SerialToolGUI:
         
         self.batch_port_configs.append(config)
         self._save_batch_configs()
-        self.status_var.set(f"已添加 {port} 到批量配置 (共{len(self.batch_port_configs)}个)")
+        self.status_var.set(f"已添加 {port} ({config_source}) 到批量配置 (共{len(self.batch_port_configs)}个)")
     
     def _start_batch(self):
         """快速启动批量配置的所有串口"""
