@@ -30,12 +30,12 @@ jobs:
     
     - name: Run unit tests
       run: |
-        python test_serial.py
+        python tests/test_serial.py
       continue-on-error: false
     
     - name: Run performance tests
       run: |
-        python test_performance.py
+        python tests/test_performance.py
       continue-on-error: false
     
     - name: Create logs directory for packaging
@@ -59,7 +59,7 @@ jobs:
         
     - name: Build executable
       run: |
-        pyinstaller --clean serial_tool.spec
+        pyinstaller --clean scripts/serial_tool.spec
     
     - name: Restore VERSION file
       run: |
@@ -80,7 +80,7 @@ jobs:
         
     - name: Copy README to dist
       run: |
-        Copy-Item README.md dist/
+        Copy-Item docs/README.md dist/
         
     - name: Create ZIP package
       run: |
