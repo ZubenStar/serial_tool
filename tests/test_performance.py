@@ -5,17 +5,16 @@
 2. 实时筛选测试（数据能实时显示）
 3. 延迟测试（响应时间<100ms）
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 import unittest
 import threading
 import time
 import queue
 from unittest.mock import Mock, patch, MagicMock
 from serial_monitor import SerialMonitor, MultiSerialMonitor
-import sys
-import os
-
-# 添加项目根目录到路径
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 class TestPerformance(unittest.TestCase):

@@ -2,8 +2,11 @@
 更新检查功能测试脚本
 用于测试版本比较和更新检查功能
 """
-from update_checker import UpdateChecker
 import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
+from update_checker import UpdateChecker
 
 
 def test_version_parsing():
