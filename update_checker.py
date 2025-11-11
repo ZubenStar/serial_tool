@@ -7,6 +7,8 @@ import json
 from typing import Optional, Tuple, Dict, Any
 from pathlib import Path
 import re
+from pathlib import Path
+from typing import Callable
 
 
 class UpdateChecker:
@@ -204,6 +206,60 @@ class UpdateChecker:
                 summary += f"\n  • {name} ({size_mb:.2f} MB)"
         
         return summary
+    
+    def download_update(self, download_url: str, save_path: Optional[str] = None,
+                       progress_callback: Optional[Callable[[int, int], None]] = None) -> Tuple[bool, str]:
+        """
+        下载更新文件
+        
+        Args:
+            download_url: 下载链接
+            save_path: 保存路径（可选，默认为当前目录）
+            progress_callback: 进度回调函数 callback(current, total)
+            
+        Returns:
+            (成功标志, 保存路径或错误信息)
+        """
+        try:
+            # 确定保存路径
+            if not save_path:
+                filename = download_url.split('/')[-1]
+                if not filename or '?' in filename:
+                    filename = "serial_tool_update.exe"
+                save_path = str(Path.cwd() / "downloads" / filename)
+            
+            # 确保下载目录存在
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            
+            # 创建请求
+            req = urllib.request.Request(
+                download_url,
+                headers={'User-Agent': 'SerialToolUpdateChecker/1.0'}
+            )
+            
+            # 开始下载
+            with urllib.request.urlopen(req, timeout=30) as response:
+                total_size = int(response.headers.get('content-length', 0))
+                downloaded = 0
+                chunk_size = 8192
+                
+                with open(save_path, 'wb') as f:
+                    while True:
+                        chunk = response.read(chunk_size)
+                        if not chunk:
+                            break
+                        
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        
+                        # 调用进度回调
+                        if progress_callback:
+                            progress_callback(downloaded, total_size)
+            
+            return True, save_path
+            
+        except Exception as e:
+            return False, str(e)
 
 
 def check_updates_simple(owner: str = "yourusername", repo: str = "serial_tool") -> Tuple[bool, str]:

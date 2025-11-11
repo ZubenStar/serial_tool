@@ -1520,13 +1520,49 @@ class SerialToolGUI:
         """显示更新检查结果"""
         if has_update and update_info:
             summary = self.update_checker.get_update_summary(update_info)
-            result = messagebox.askyesnocancel(
-                "发现新版本",
-                f"{summary}\n\n是否立即访问下载页面？",
-                icon='info'
-            )
             
-            if result:  # 用户点击"是"
+            # 创建自定义对话框，提供三个选项
+            dialog = tk.Toplevel(self.root)
+            dialog.title("发现新版本")
+            dialog.geometry("600x450")
+            dialog.resizable(False, False)
+            dialog.transient(self.root)
+            dialog.grab_set()
+            
+            # 居中显示
+            dialog.update_idletasks()
+            x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (450 // 2)
+            dialog.geometry(f"600x450+{x}+{y}")
+            
+            # 摘要信息
+            text_frame = ttk.Frame(dialog, padding=15)
+            text_frame.pack(fill=tk.BOTH, expand=True)
+            
+            text_widget = scrolledtext.ScrolledText(
+                text_frame,
+                wrap=tk.WORD,
+                font=('Microsoft YaHei UI', 10),
+                background=self.theme_colors['text_bg'],
+                foreground=self.theme_colors['text_fg'],
+                relief=tk.FLAT,
+                padx=10,
+                pady=10
+            )
+            text_widget.pack(fill=tk.BOTH, expand=True)
+            text_widget.insert('1.0', summary)
+            text_widget.config(state=tk.DISABLED)
+            
+            # 按钮区域
+            btn_frame = ttk.Frame(dialog, padding=15)
+            btn_frame.pack(fill=tk.X)
+            
+            def on_download():
+                dialog.destroy()
+                self._download_update(update_info)
+            
+            def on_browser():
+                dialog.destroy()
                 download_url = update_info.get('download_url', '')
                 if download_url:
                     import webbrowser
@@ -1534,8 +1570,14 @@ class SerialToolGUI:
                     self.status_var.set("已打开下载页面")
                 else:
                     messagebox.showwarning("提示", "未找到下载链接")
-            else:
+            
+            def on_cancel():
+                dialog.destroy()
                 self.status_var.set("已取消更新")
+            
+            ttk.Button(btn_frame, text="自动下载", command=on_download).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+            ttk.Button(btn_frame, text="浏览器打开", command=on_browser).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+            ttk.Button(btn_frame, text="稍后提醒", command=on_cancel).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
         elif update_info:
             messagebox.showinfo(
                 "无可用更新",
@@ -1548,6 +1590,130 @@ class SerialToolGUI:
                 "无法连接到更新服务器\n\n请检查网络连接或稍后重试"
             )
             self.status_var.set("检查更新失败")
+    
+    def _download_update(self, update_info):
+        """下载更新文件"""
+        # 获取第一个资源文件的下载链接
+        assets = update_info.get('assets', [])
+        if not assets:
+            messagebox.showwarning("提示", "没有可用的下载文件")
+            return
+        
+        download_url = assets[0].get('download_url', '')
+        if not download_url:
+            messagebox.showwarning("提示", "未找到下载链接")
+            return
+        
+        # 创建下载进度对话框
+        progress_dialog = tk.Toplevel(self.root)
+        progress_dialog.title("下载更新")
+        progress_dialog.geometry("500x200")
+        progress_dialog.resizable(False, False)
+        progress_dialog.transient(self.root)
+        progress_dialog.grab_set()
+        
+        # 居中显示
+        progress_dialog.update_idletasks()
+        x = (progress_dialog.winfo_screenwidth() // 2) - (500 // 2)
+        y = (progress_dialog.winfo_screenheight() // 2) - (200 // 2)
+        progress_dialog.geometry(f"500x200+{x}+{y}")
+        
+        # 信息标签
+        info_frame = ttk.Frame(progress_dialog, padding=20)
+        info_frame.pack(fill=tk.X)
+        
+        filename = assets[0].get('name', 'update.exe')
+        ttk.Label(info_frame, text=f"正在下载: {filename}", font=('Microsoft YaHei UI', 11, 'bold')).pack()
+        
+        # 进度条
+        progress_frame = ttk.Frame(progress_dialog, padding=20)
+        progress_frame.pack(fill=tk.BOTH, expand=True)
+        
+        progress_bar = ttk.Progressbar(progress_frame, mode='determinate', length=400)
+        progress_bar.pack(pady=10)
+        
+        progress_label = ttk.Label(progress_frame, text="准备下载...", font=('Microsoft YaHei UI', 10))
+        progress_label.pack()
+        
+        # 取消按钮
+        btn_frame = ttk.Frame(progress_dialog, padding=10)
+        btn_frame.pack(fill=tk.X)
+        
+        cancel_flag = {'cancelled': False}
+        
+        def on_cancel():
+            cancel_flag['cancelled'] = True
+            progress_dialog.destroy()
+            self.status_var.set("已取消下载")
+        
+        cancel_btn = ttk.Button(btn_frame, text="取消", command=on_cancel)
+        cancel_btn.pack()
+        
+        # 进度回调
+        def progress_callback(current, total):
+            if cancel_flag['cancelled']:
+                return
+            
+            if total > 0:
+                percent = (current / total) * 100
+                progress_bar['value'] = percent
+                
+                # 格式化大小
+                current_mb = current / (1024 * 1024)
+                total_mb = total / (1024 * 1024)
+                progress_label.config(text=f"{current_mb:.2f} MB / {total_mb:.2f} MB ({percent:.1f}%)")
+            else:
+                progress_label.config(text=f"已下载: {current / (1024 * 1024):.2f} MB")
+            
+            progress_dialog.update()
+        
+        # 后台下载
+        def download_thread():
+            try:
+                success, result = self.update_checker.download_update(download_url, progress_callback=progress_callback)
+                
+                if cancel_flag['cancelled']:
+                    return
+                
+                # 在主线程中更新UI
+                self.root.after(0, lambda: self._on_download_complete(success, result, progress_dialog))
+            except Exception as e:
+                if not cancel_flag['cancelled']:
+                    self.root.after(0, lambda: self._on_download_error(str(e), progress_dialog))
+        
+        threading.Thread(target=download_thread, daemon=True).start()
+    
+    def _on_download_complete(self, success, result, dialog):
+        """下载完成回调"""
+        dialog.destroy()
+        
+        if success:
+            msg = f"更新文件已下载完成！\n\n保存位置: {result}\n\n是否立即打开文件所在位置？"
+            if messagebox.askyesno("下载完成", msg):
+                import os
+                import subprocess
+                import sys
+                
+                folder_path = str(Path(result).parent)
+                
+                # 打开文件夹
+                if sys.platform == 'win32':
+                    os.startfile(folder_path)
+                elif sys.platform == 'darwin':
+                    subprocess.Popen(['open', folder_path])
+                else:
+                    subprocess.Popen(['xdg-open', folder_path])
+            
+            self.status_var.set(f"下载完成: {Path(result).name}")
+        else:
+            messagebox.showerror("下载失败", f"下载过程中出错:\n{result}")
+            self.status_var.set("下载失败")
+    
+    def _on_download_error(self, error_msg, dialog):
+        """下载错误回调"""
+        dialog.destroy()
+        messagebox.showerror("下载错误", f"下载时出错: {error_msg}")
+        self.status_var.set("下载失败")
     
     def _show_update_error(self, error_msg):
         """显示更新检查错误"""
