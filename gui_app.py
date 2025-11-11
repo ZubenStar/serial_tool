@@ -1523,21 +1523,27 @@ class SerialToolGUI:
             
             # 创建自定义对话框，提供三个选项
             dialog = tk.Toplevel(self.root)
-            dialog.title("发现新版本")
-            dialog.geometry("600x450")
+            dialog.title("发现新版本 🎉")
+            dialog.geometry("650x550")
             dialog.resizable(False, False)
             dialog.transient(self.root)
             dialog.grab_set()
             
+            # 设置对话框图标和样式
+            try:
+                dialog.configure(bg=self.theme_colors['bg'])
+            except:
+                pass
+            
             # 居中显示
             dialog.update_idletasks()
-            x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
-            y = (dialog.winfo_screenheight() // 2) - (450 // 2)
-            dialog.geometry(f"600x450+{x}+{y}")
+            x = (dialog.winfo_screenwidth() // 2) - (650 // 2)
+            y = (dialog.winfo_screenheight() // 2) - (550 // 2)
+            dialog.geometry(f"650x550+{x}+{y}")
             
             # 摘要信息
             text_frame = ttk.Frame(dialog, padding=15)
-            text_frame.pack(fill=tk.BOTH, expand=True)
+            text_frame.pack(fill=tk.BOTH, expand=False)
             
             text_widget = scrolledtext.ScrolledText(
                 text_frame,
@@ -1547,11 +1553,24 @@ class SerialToolGUI:
                 foreground=self.theme_colors['text_fg'],
                 relief=tk.FLAT,
                 padx=10,
-                pady=10
+                pady=10,
+                height=18  # 增加高度以显示更多内容
             )
-            text_widget.pack(fill=tk.BOTH, expand=True)
+            text_widget.pack(fill=tk.BOTH, expand=False)
             text_widget.insert('1.0', summary)
             text_widget.config(state=tk.DISABLED)
+            
+            # 分隔线
+            separator = ttk.Separator(dialog, orient='horizontal')
+            separator.pack(fill=tk.X, padx=15, pady=10)
+            
+            # 提示标签
+            tip_label = ttk.Label(
+                dialog,
+                text="💡 选择更新方式：",
+                font=('Microsoft YaHei UI', 10, 'bold')
+            )
+            tip_label.pack(pady=(5, 10))
             
             # 按钮区域
             btn_frame = ttk.Frame(dialog, padding=15)
@@ -1575,9 +1594,29 @@ class SerialToolGUI:
                 dialog.destroy()
                 self.status_var.set("已取消更新")
             
-            ttk.Button(btn_frame, text="自动下载", command=on_download).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
-            ttk.Button(btn_frame, text="浏览器打开", command=on_browser).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
-            ttk.Button(btn_frame, text="稍后提醒", command=on_cancel).pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+            # 按钮样式 - 使用较大的按钮
+            download_btn = ttk.Button(btn_frame, text="🔽 自动下载", command=on_download)
+            download_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+            
+            browser_btn = ttk.Button(btn_frame, text="🌐 浏览器打开", command=on_browser)
+            browser_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+            
+            cancel_btn = ttk.Button(btn_frame, text="⏰ 稍后提醒", command=on_cancel)
+            cancel_btn.pack(side=tk.LEFT, padx=5, expand=True, fill=tk.X)
+            
+            # 添加说明文字
+            desc_frame = ttk.Frame(dialog, padding=(15, 5, 15, 10))
+            desc_frame.pack(fill=tk.X)
+            
+            desc_text = "• 自动下载：后台下载更新文件到本地\n• 浏览器打开：在浏览器中查看和下载\n• 稍后提醒：关闭此窗口，稍后再更新"
+            desc_label = ttk.Label(
+                desc_frame,
+                text=desc_text,
+                font=('Microsoft YaHei UI', 9),
+                foreground='#858585',
+                justify=tk.LEFT
+            )
+            desc_label.pack(anchor=tk.W)
         elif update_info:
             messagebox.showinfo(
                 "无可用更新",
@@ -1688,13 +1727,33 @@ class SerialToolGUI:
         dialog.destroy()
         
         if success:
-            msg = f"更新文件已下载完成！\n\n保存位置: {result}\n\n是否立即打开文件所在位置？"
-            if messagebox.askyesno("下载完成", msg):
+            # 检查是否是解压后的目录
+            result_path = Path(result)
+            if result_path.is_dir():
+                # ZIP文件已自动解压
+                msg = f"更新文件已下载并自动解压！\n\n解压位置: {result}\n\n是否立即打开文件夹？"
+                title = "下载并解压完成"
+                status_msg = f"已解压到: {result_path.name}"
+            elif "解压失败" in result:
+                # 下载成功但解压失败
+                msg = f"{result}\n\n是否立即打开文件所在位置？"
+                title = "下载完成（解压失败）"
+                status_msg = "下载完成但解压失败"
+            else:
+                # 非ZIP文件或单个文件
+                msg = f"更新文件已下载完成！\n\n保存位置: {result}\n\n是否立即打开文件所在位置？"
+                title = "下载完成"
+                status_msg = f"下载完成: {result_path.name}"
+            
+            if messagebox.askyesno(title, msg):
                 import os
                 import subprocess
                 import sys
                 
-                folder_path = str(Path(result).parent)
+                if result_path.is_dir():
+                    folder_path = str(result_path)
+                else:
+                    folder_path = str(result_path.parent)
                 
                 # 打开文件夹
                 if sys.platform == 'win32':
@@ -1704,7 +1763,7 @@ class SerialToolGUI:
                 else:
                     subprocess.Popen(['xdg-open', folder_path])
             
-            self.status_var.set(f"下载完成: {Path(result).name}")
+            self.status_var.set(status_msg)
         else:
             messagebox.showerror("下载失败", f"下载过程中出错:\n{result}")
             self.status_var.set("下载失败")

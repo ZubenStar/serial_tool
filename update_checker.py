@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 from pathlib import Path
 from typing import Callable
+import zipfile
 
 
 class UpdateChecker:
@@ -255,6 +256,20 @@ class UpdateChecker:
                         # 调用进度回调
                         if progress_callback:
                             progress_callback(downloaded, total_size)
+            
+            # 检查是否为zip文件，如果是则自动解压
+            if save_path.lower().endswith('.zip'):
+                try:
+                    extract_dir = Path(save_path).parent / Path(save_path).stem
+                    extract_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    with zipfile.ZipFile(save_path, 'r') as zip_ref:
+                        zip_ref.extractall(extract_dir)
+                    
+                    return True, str(extract_dir)
+                except Exception as extract_error:
+                    # 解压失败，但下载成功，返回下载路径
+                    return True, f"{save_path} (解压失败: {str(extract_error)})"
             
             return True, save_path
             
