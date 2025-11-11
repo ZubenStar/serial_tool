@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from typing import Dict, List
 from log_filter import LogFilterWindow
+from update_checker import UpdateChecker
 
 # 延迟导入serial_monitor以加快启动
 _monitor_module = None
@@ -423,6 +424,7 @@ class SerialToolGUI:
         tools_row4 = ttk.Frame(tools_frame)
         tools_row4.pack(fill=tk.X, pady=5)
         ttk.Button(tools_row4, text="🔧 工具箱", command=self._open_utilities).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(tools_row4, text="🔄 检查更新", command=self._check_for_updates).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         # 发送数据区 - 紧凑布局
         send_frame = ttk.LabelFrame(left_panel, text="📤 发送数据", padding=12)
@@ -564,9 +566,17 @@ class SerialToolGUI:
             foreground=self.theme_colors['version_fg'],
             font=('Microsoft YaHei UI', 8),
             padx=10,
-            pady=5
+            pady=5,
+            cursor='hand2'
         )
         self.version_label.pack(side=tk.RIGHT, padx=5)
+        self.version_label.bind('<Button-1>', lambda e: self._check_for_updates())
+        
+        # 初始化更新检查器（用户需要配置自己的GitHub仓库信息）
+        self.update_checker = UpdateChecker(
+            owner="ZubenStar",  # 修改为你的GitHub用户名
+            repo="serial_tool"      # 修改为你的仓库名
+        )
     
     def _toggle_theme(self):
         """切换深浅主题"""
@@ -1488,6 +1498,61 @@ class SerialToolGUI:
         else:
             messagebox.showinfo("成功", f"已成功将所有 {success_count} 个串口的波特率修改为 {new_baudrate}")
             self.status_var.set(f"已批量修改 {success_count} 个串口的波特率为 {new_baudrate}")
+    
+    def _check_for_updates(self):
+        """检查应用程序更新"""
+        self.status_var.set("正在检查更新...")
+        
+        def check_updates_thread():
+            try:
+                has_update, update_info = self.update_checker.check_for_updates()
+                
+                # 在主线程中更新UI
+                self.root.after(0, lambda: self._show_update_result(has_update, update_info))
+            except Exception as e:
+                error_msg = f"检查更新时出错: {str(e)}"
+                self.root.after(0, lambda: self._show_update_error(error_msg))
+        
+        # 在后台线程检查更新，避免阻塞UI
+        threading.Thread(target=check_updates_thread, daemon=True).start()
+    
+    def _show_update_result(self, has_update, update_info):
+        """显示更新检查结果"""
+        if has_update and update_info:
+            summary = self.update_checker.get_update_summary(update_info)
+            result = messagebox.askyesnocancel(
+                "发现新版本",
+                f"{summary}\n\n是否立即访问下载页面？",
+                icon='info'
+            )
+            
+            if result:  # 用户点击"是"
+                download_url = update_info.get('download_url', '')
+                if download_url:
+                    import webbrowser
+                    webbrowser.open(download_url)
+                    self.status_var.set("已打开下载页面")
+                else:
+                    messagebox.showwarning("提示", "未找到下载链接")
+            else:
+                self.status_var.set("已取消更新")
+        elif update_info:
+            messagebox.showinfo(
+                "无可用更新",
+                f"当前已是最新版本: {self.update_checker.current_version}"
+            )
+            self.status_var.set("当前已是最新版本")
+        else:
+            messagebox.showwarning(
+                "检查更新失败",
+                "无法连接到更新服务器\n\n请检查网络连接或稍后重试"
+            )
+            self.status_var.set("检查更新失败")
+    
+    def _show_update_error(self, error_msg):
+        """显示更新检查错误"""
+        messagebox.showerror("错误", error_msg)
+        self.status_var.set("检查更新失败")
     
     def close(self):
         """关闭应用，确保资源正确清理"""
