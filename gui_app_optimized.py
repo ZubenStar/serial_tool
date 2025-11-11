@@ -342,17 +342,21 @@ class SerialToolGUI:
         tools_row1 = ttk.Frame(tools_frame)
         tools_row1.pack(fill=tk.X, pady=5)
         ttk.Button(tools_row1, text="📄 日志过滤", command=self._open_log_filter).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row1, text="📊 可视化", command=self._open_visualizer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(tools_row1, text="📂 打开日志", command=self._open_log_folder).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         tools_row2 = ttk.Frame(tools_frame)
         tools_row2.pack(fill=tk.X, pady=5)
+        ttk.Button(tools_row2, text="📊 可视化", command=self._open_visualizer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(tools_row2, text="🔍 数据分析", command=self._open_analyzer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row2, text="🎬 录制回放", command=self._open_recorder).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         tools_row3 = ttk.Frame(tools_frame)
         tools_row3.pack(fill=tk.X, pady=5)
+        ttk.Button(tools_row3, text="🎬 录制回放", command=self._open_recorder).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(tools_row3, text="🤖 自动化", command=self._open_automation).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row3, text="🔧 工具箱", command=self._open_utilities).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        
+        tools_row4 = ttk.Frame(tools_frame)
+        tools_row4.pack(fill=tk.X, pady=5)
+        ttk.Button(tools_row4, text="🔧 工具箱", command=self._open_utilities).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         # 批量操作
         batch_frame = ttk.LabelFrame(parent, text="⚡ 批量操作", padding=22)
@@ -554,3 +558,88 @@ class SerialToolGUI:
         )
         
         self.root.update_idletasks()
+    
+    def _open_log_filter(self):
+        """打开日志过滤工具"""
+        try:
+            LogFilterWindow(self.root, log_dir=self.monitor.log_dir)
+            self.status_var.set("已打开日志过滤工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开日志过滤工具: {str(e)}")
+    
+    def _open_visualizer(self):
+        """打开数据可视化工具"""
+        try:
+            from data_visualizer import DataVisualizer
+            visualizer = DataVisualizer(self.root, self.monitor)
+            visualizer.open_visualizer_window()
+            self.status_var.set("已打开数据可视化工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开数据可视化工具: {str(e)}")
+    
+    def _open_analyzer(self):
+        """打开数据分析工具"""
+        try:
+            from data_analyzer import DataAnalyzerWindow
+            analyzer = DataAnalyzerWindow(self.root)
+            analyzer.open_analyzer_window()
+            self.status_var.set("已打开数据分析工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开数据分析工具: {str(e)}")
+    
+    def _open_recorder(self):
+        """打开录制回放工具"""
+        try:
+            from recorder_player import RecorderPlayerWindow
+            recorder = RecorderPlayerWindow(self.root, self.monitor)
+            recorder.open_window()
+            self.status_var.set("已打开录制回放工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开录制回放工具: {str(e)}")
+    
+    def _open_automation(self):
+        """打开自动化测试工具"""
+        try:
+            from automation_tester import AutomationTesterWindow
+            automation = AutomationTesterWindow(self.root, self.monitor)
+            automation.open_window()
+            self.status_var.set("已打开自动化测试工具")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开自动化测试工具: {str(e)}")
+    
+    def _open_utilities(self):
+        """打开实用工具箱"""
+        try:
+            from utility_tools import UtilityToolsWindow
+            utilities = UtilityToolsWindow(self.root)
+            utilities.open_window()
+            self.status_var.set("已打开实用工具箱")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开实用工具箱: {str(e)}")
+    
+    def _open_log_folder(self):
+        """打开日志保存文件夹"""
+        try:
+            import subprocess
+            import sys
+            from pathlib import Path
+            
+            log_path = Path(self.monitor.log_dir).absolute()
+            
+            # 确保日志目录存在
+            if not log_path.exists():
+                log_path.mkdir(parents=True, exist_ok=True)
+            
+            # 根据操作系统打开文件夹
+            if sys.platform == 'win32':
+                os.startfile(str(log_path))
+            elif sys.platform == 'darwin':  # macOS
+                subprocess.Popen(['open', str(log_path)])
+            else:  # Linux
+                subprocess.Popen(['xdg-open', str(log_path)])
+            
+            self.status_var.set(f"已打开日志文件夹: {log_path}")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开日志文件夹: {str(e)}")
+    
+    # Add other missing methods as needed for completeness
