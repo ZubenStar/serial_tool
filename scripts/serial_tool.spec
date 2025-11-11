@@ -7,8 +7,11 @@ from PyInstaller.utils.win32.versioninfo import (
 
 block_cipher = None
 
+# 获取项目根目录（spec文件在scripts目录下）
+ROOT_DIR = os.path.dirname(os.path.abspath(SPECPATH))
+
 # 读取版本号（只读取第一行）
-with open('VERSION', 'r', encoding='utf-8') as f:
+with open(os.path.join(ROOT_DIR, 'VERSION'), 'r', encoding='utf-8') as f:
     lines = f.read().strip().split('\n')
     version_str = lines[0].strip()
 
@@ -48,12 +51,12 @@ version_info = VSVersionInfo(
 )
 
 a = Analysis(
-    ['gui_app.py'],
-    pathex=[os.path.abspath('.')],
+    [os.path.join(ROOT_DIR, 'src', 'gui_app.py')],
+    pathex=[ROOT_DIR],
     binaries=[],
     datas=[
-        ('serial_monitor.py', '.'),
-        ('VERSION', '.'),
+        (os.path.join(ROOT_DIR, 'src', 'serial_monitor.py'), '.'),
+        (os.path.join(ROOT_DIR, 'VERSION'), '.'),
     ],
     hiddenimports=[
         'serial',
@@ -61,7 +64,7 @@ a = Analysis(
         'serial.tools.list_ports',
         'serial_monitor',
     ],
-    hookspath=['.'],
+    hookspath=[os.path.join(ROOT_DIR, 'scripts')],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],

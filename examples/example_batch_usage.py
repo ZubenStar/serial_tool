@@ -3,6 +3,9 @@
 
 演示如何使用批量启动功能快速打开多个串口
 """
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from serial_monitor import MultiSerialMonitor
 import time

@@ -94,7 +94,7 @@ def build_exe(auto_version=None):
     cmd = [
         'pyinstaller',
         '--clean',                      # 清理临时文件
-        'serial_tool.spec'              # 使用spec配置文件
+        'scripts/serial_tool.spec'      # 使用spec配置文件
     ]
     
     try:
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # 检查是否在正确的目录
-    if not os.path.exists('gui_app.py'):
+    if not os.path.exists('src/gui_app.py'):
         print("❌ 错误: 请在项目根目录运行此脚本")
         sys.exit(1)
     

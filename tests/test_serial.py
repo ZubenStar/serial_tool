@@ -1,4 +1,8 @@
 """串口工具测试脚本"""
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 import unittest
 from unittest.mock import Mock, patch, MagicMock
 from serial_monitor import SerialMonitor, MultiSerialMonitor

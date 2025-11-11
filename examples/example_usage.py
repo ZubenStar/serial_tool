@@ -1,4 +1,8 @@
 """串口监控工具使用示例"""
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+
 from serial_monitor import MultiSerialMonitor, SerialMonitor
 import time
 
