@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 from log_filter import LogFilterWindow
 from update_checker import UpdateChecker
+from filter_keywords_history import FilterKeywordsHistory, FilterKeywordsHistoryWindow
 
 # 延迟导入serial_monitor以加快启动
 _monitor_module = None
@@ -71,6 +72,9 @@ class SerialToolGUI:
         self.config_file = "serial_tool_config.json"  # 统一配置文件
         self.batch_port_configs: List[Dict] = []  # 批量串口配置列表
         self.preset_data_list: List[Dict] = []  # 预设数据列表
+        
+        # 过滤关键词历史管理器
+        self.filter_keywords_history = FilterKeywordsHistory()
         
         # 性能优化：批量更新缓冲区 - 激进的实时显示策略
         self.display_buffer = []
@@ -348,10 +352,15 @@ class SerialToolGUI:
         ttk.Button(baudrate_btn_frame, text="🔧 修改当前", command=self._change_current_baudrate).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(baudrate_btn_frame, text="🔧 修改全部", command=self._change_all_baudrates).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
-        # 关键词过滤
+        # 关键词过滤（添加历史记录按钮）
         kw_frame = ttk.Frame(control_frame)
         kw_frame.pack(fill=tk.X, pady=8)
-        ttk.Label(kw_frame, text="🔍 关键词过滤", font=('Microsoft YaHei UI', 10, 'bold')).pack(anchor=tk.W, pady=(0, 6))
+        
+        # 标题行 - 包含标题和历史按钮
+        kw_header_frame = ttk.Frame(kw_frame)
+        kw_header_frame.pack(fill=tk.X, pady=(0, 6))
+        ttk.Label(kw_header_frame, text="🔍 关键词过滤", font=('Microsoft YaHei UI', 10, 'bold')).pack(side=tk.LEFT)
+        ttk.Button(kw_header_frame, text="📜", command=self._open_filter_keywords_history, width=3).pack(side=tk.LEFT, padx=(5, 0))
         self.keywords_var = tk.StringVar()
         ttk.Entry(kw_frame, textvariable=self.keywords_var, font=('Microsoft YaHei UI', 10)).pack(fill=tk.X, pady=2)
         self.keywords_var.trace_add('write', self._on_config_change)
@@ -728,6 +737,10 @@ class SerialToolGUI:
         
         keywords, regex_patterns = self._get_filter_config()
         
+        # 自动保存过滤关键词到历史
+        if keywords:
+            self.filter_keywords_history.add_keywords(keywords)
+        
         # 更新所有活动串口的过滤条件
         success_count = 0
         for port in active_ports:
@@ -775,6 +788,10 @@ class SerialToolGUI:
             return
         
         keywords, regex_patterns = self._get_filter_config()
+        
+        # 自动保存过滤关键词到历史
+        if keywords:
+            self.filter_keywords_history.add_keywords(keywords)
         
         def callback(port, timestamp, data, colored_log_entry=""):
             self._display_data(port, timestamp, data)
@@ -1778,6 +1795,24 @@ class SerialToolGUI:
         """显示更新检查错误"""
         messagebox.showerror("错误", error_msg)
         self.status_var.set("检查更新失败")
+    
+    def _open_filter_keywords_history(self):
+        """打开过滤关键词历史记录窗口"""
+        try:
+            def on_apply_keywords(keywords_list):
+                """应用选中的关键词到主界面"""
+                keywords_str = ','.join(keywords_list)
+                self.keywords_var.set(keywords_str)
+                self.status_var.set(f"已应用历史关键词: {keywords_str[:50]}{'...' if len(keywords_str) > 50 else ''}")
+            
+            FilterKeywordsHistoryWindow(
+                self.root,
+                self.filter_keywords_history,
+                on_apply_keywords
+            )
+            self.status_var.set("已打开过滤关键词历史")
+        except Exception as e:
+            messagebox.showerror("错误", f"无法打开过滤关键词历史: {str(e)}")
     
     def close(self):
         """关闭应用，确保资源正确清理"""
