@@ -748,7 +748,7 @@ class SerialToolGUI:
                 # 更新本地配置
                 if port in self.port_configs:
                     self.port_configs[port]['keywords'] = keywords
-                    self.port_configs[port]['regex'] = regex_patterns
+                    self.port_configs[port]['regex_patterns'] = regex_patterns
                 success_count += 1
         
         # 更新活动串口列表显示
@@ -800,7 +800,7 @@ class SerialToolGUI:
             self.port_configs[port] = {
                 'baudrate': baudrate,
                 'keywords': keywords,
-                'regex': regex_patterns
+                'regex_patterns': regex_patterns
             }
             self._update_active_list()
             self.status_var.set(f"已启动 {port}")
@@ -839,8 +839,8 @@ class SerialToolGUI:
             info = f"{port} @ {config.get('baudrate', 'N/A')} bps"
             if config.get('keywords'):
                 info += f" | 关键词: {', '.join(config['keywords'][:3])}"
-            if config.get('regex'):
-                info += f" | 正则: {', '.join(config['regex'][:2])}"
+            if config.get('regex_patterns'):
+                info += f" | 正则: {', '.join(config['regex_patterns'][:2])}"
             self.active_list.insert(tk.END, info)
         
         # 更新发送串口选择
@@ -1085,7 +1085,7 @@ class SerialToolGUI:
             active_config = self.port_configs[port]
             baudrate = active_config.get('baudrate', 9600)
             keywords = active_config.get('keywords', [])
-            regex_patterns = active_config.get('regex', [])
+            regex_patterns = active_config.get('regex_patterns', [])
             config_source = "活动配置"
         else:
             # 串口未运行，使用UI输入的配置
@@ -1257,8 +1257,13 @@ class SerialToolGUI:
                 self.preset_data_list = config.get('preset_data', [])
                 self._update_preset_combo()
                 
-                # 加载批量配置
-                self.batch_port_configs = config.get('batch_configs', [])
+                # 加载批量配置（并迁移旧的 'regex' 键名）
+                batch_configs = config.get('batch_configs', [])
+                # 迁移旧配置：将 'regex' 重命名为 'regex_patterns'
+                for cfg in batch_configs:
+                    if 'regex' in cfg and 'regex_patterns' not in cfg:
+                        cfg['regex_patterns'] = cfg.pop('regex')
+                self.batch_port_configs = batch_configs
                 
                 # 更新状态栏
                 status_parts = ["已加载配置"]
