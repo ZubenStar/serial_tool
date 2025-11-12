@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 from log_filter import LogFilterWindow
 from update_checker import UpdateChecker
-from filter_keywords_history import FilterKeywordsHistory, FilterKeywordsHistoryWindow
+# Removed: from filter_keywords_history import FilterKeywordsHistory, FilterKeywordsHistoryWindow
 
 # 延迟导入serial_monitor以加快启动
 _monitor_module = None
@@ -72,9 +72,6 @@ class SerialToolGUI:
         self.config_file = "serial_tool_config.json"  # 统一配置文件
         self.batch_port_configs: List[Dict] = []  # 批量串口配置列表
         self.preset_data_list: List[Dict] = []  # 预设数据列表
-        
-        # 过滤关键词历史管理器
-        self.filter_keywords_history = FilterKeywordsHistory()
         
         # 性能优化：批量更新缓冲区 - 激进的实时显示策略
         self.display_buffer = []
@@ -352,21 +349,7 @@ class SerialToolGUI:
         ttk.Button(baudrate_btn_frame, text="🔧 修改当前", command=self._change_current_baudrate).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(baudrate_btn_frame, text="🔧 修改全部", command=self._change_all_baudrates).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
-        # 关键词过滤（添加历史记录按钮）
-        kw_frame = ttk.Frame(control_frame)
-        kw_frame.pack(fill=tk.X, pady=8)
-        
-        # 标题行 - 包含标题和历史按钮
-        kw_header_frame = ttk.Frame(kw_frame)
-        kw_header_frame.pack(fill=tk.X, pady=(0, 6))
-        ttk.Label(kw_header_frame, text="🔍 关键词过滤", font=('Microsoft YaHei UI', 10, 'bold')).pack(side=tk.LEFT)
-        ttk.Button(kw_header_frame, text="📜", command=self._open_filter_keywords_history, width=3).pack(side=tk.LEFT, padx=(5, 0))
-        self.keywords_var = tk.StringVar()
-        ttk.Entry(kw_frame, textvariable=self.keywords_var, font=('Microsoft YaHei UI', 10)).pack(fill=tk.X, pady=2)
-        self.keywords_var.trace_add('write', self._on_config_change)
-        ttk.Label(kw_frame, text="多个关键词用逗号分隔", font=("Microsoft YaHei UI", 9), foreground='#6c757d').pack(anchor=tk.W, pady=(4, 0))
-        
-        # 正则表达式
+        # 正则表达式过滤
         regex_frame = ttk.Frame(control_frame)
         regex_frame.pack(fill=tk.X, pady=8)
         ttk.Label(regex_frame, text="📋 正则表达式", font=('Microsoft YaHei UI', 10, 'bold')).pack(anchor=tk.W, pady=(0, 6))
@@ -722,10 +705,9 @@ class SerialToolGUI:
         self.status_var.set(f"找到 {len(ports)} 个可用串口")
         
     def _get_filter_config(self):
-        """获取过滤配置"""
-        keywords = [k.strip() for k in self.keywords_var.get().split(',') if k.strip()]
+        """获取过滤配置 - 只使用正则表达式过滤"""
         regex_patterns = [r.strip() for r in self.regex_var.get().split(',') if r.strip()]
-        return keywords, regex_patterns
+        return regex_patterns
     
     def _apply_filters_realtime(self):
         """实时应用过滤条件到所有活动串口，无需重启串口"""
@@ -735,19 +717,14 @@ class SerialToolGUI:
             messagebox.showinfo("提示", "当前没有活动的串口监控")
             return
         
-        keywords, regex_patterns = self._get_filter_config()
-        
-        # 自动保存过滤关键词到历史
-        if keywords:
-            self.filter_keywords_history.add_keywords(keywords)
+        regex_patterns = self._get_filter_config()
         
         # 更新所有活动串口的过滤条件
         success_count = 0
         for port in active_ports:
-            if self.monitor.update_monitor_filters(port, keywords, regex_patterns):
+            if self.monitor.update_monitor_filters(port, [], regex_patterns):
                 # 更新本地配置
                 if port in self.port_configs:
-                    self.port_configs[port]['keywords'] = keywords
                     self.port_configs[port]['regex_patterns'] = regex_patterns
                 success_count += 1
         
@@ -755,14 +732,8 @@ class SerialToolGUI:
         self._update_active_list()
         
         # 显示提示信息
-        filter_info = []
-        if keywords:
-            filter_info.append(f"关键词: {', '.join(keywords[:3])}")
         if regex_patterns:
-            filter_info.append(f"正则: {', '.join(regex_patterns[:2])}")
-        
-        if filter_info:
-            filter_desc = " | ".join(filter_info)
+            filter_desc = f"正则: {', '.join(regex_patterns[:2])}"
             msg = f"已实时更新 {success_count} 个串口的过滤条件\n{filter_desc}"
         else:
             msg = f"已清除 {success_count} 个串口的过滤条件（显示全部数据）"
@@ -787,19 +758,14 @@ class SerialToolGUI:
             messagebox.showerror("错误", "波特率必须是数字")
             return
         
-        keywords, regex_patterns = self._get_filter_config()
-        
-        # 自动保存过滤关键词到历史
-        if keywords:
-            self.filter_keywords_history.add_keywords(keywords)
+        regex_patterns = self._get_filter_config()
         
         def callback(port, timestamp, data, colored_log_entry=""):
             self._display_data(port, timestamp, data)
         
-        if self.monitor.add_monitor(port, baudrate, keywords, regex_patterns, callback, enable_color=False):
+        if self.monitor.add_monitor(port, baudrate, [], regex_patterns, callback, enable_color=False):
             self.port_configs[port] = {
                 'baudrate': baudrate,
-                'keywords': keywords,
                 'regex_patterns': regex_patterns
             }
             self._update_active_list()
@@ -837,8 +803,6 @@ class SerialToolGUI:
         for port in active_ports:
             config = self.port_configs.get(port, {})
             info = f"{port} @ {config.get('baudrate', 'N/A')} bps"
-            if config.get('keywords'):
-                info += f" | 关键词: {', '.join(config['keywords'][:3])}"
             if config.get('regex_patterns'):
                 info += f" | 正则: {', '.join(config['regex_patterns'][:2])}"
             self.active_list.insert(tk.END, info)
@@ -1084,7 +1048,6 @@ class SerialToolGUI:
             # 使用活动串口的实际运行配置
             active_config = self.port_configs[port]
             baudrate = active_config.get('baudrate', 9600)
-            keywords = active_config.get('keywords', [])
             regex_patterns = active_config.get('regex_patterns', [])
             config_source = "活动配置"
         else:
@@ -1095,7 +1058,7 @@ class SerialToolGUI:
                 messagebox.showerror("错误", "波特率必须是数字")
                 return
             
-            keywords, regex_patterns = self._get_filter_config()
+            regex_patterns = self._get_filter_config()
             config_source = "UI配置"
         
         # 检查是否已存在
@@ -1107,7 +1070,6 @@ class SerialToolGUI:
         config = {
             'port': port,
             'baudrate': baudrate,
-            'keywords': keywords,
             'regex_patterns': regex_patterns
         }
         
@@ -1191,8 +1153,6 @@ class SerialToolGUI:
         info = f"批量配置列表 (共{len(self.batch_port_configs)}个):\n\n"
         for i, config in enumerate(self.batch_port_configs, 1):
             info += f"{i}. {config['port']} @ {config['baudrate']} bps"
-            if config.get('keywords'):
-                info += f"\n   关键词: {', '.join(config['keywords'])}"
             if config.get('regex_patterns'):
                 info += f"\n   正则: {', '.join(config['regex_patterns'])}"
             info += "\n\n"
@@ -1204,7 +1164,6 @@ class SerialToolGUI:
         config = {
             'default_settings': {
                 'baudrate': self.baudrate_var.get(),
-                'keywords': self.keywords_var.get(),
                 'regex': self.regex_var.get(),
                 'send_data': self.send_data_var.get()
             },
@@ -1235,8 +1194,6 @@ class SerialToolGUI:
                 default_settings = config.get('default_settings', {})
                 if 'baudrate' in default_settings:
                     self.baudrate_var.set(default_settings['baudrate'])
-                if 'keywords' in default_settings:
-                    self.keywords_var.set(default_settings['keywords'])
                 if 'regex' in default_settings:
                     self.regex_var.set(default_settings['regex'])
                 if 'send_data' in default_settings:
@@ -1800,24 +1757,6 @@ class SerialToolGUI:
         """显示更新检查错误"""
         messagebox.showerror("错误", error_msg)
         self.status_var.set("检查更新失败")
-    
-    def _open_filter_keywords_history(self):
-        """打开过滤关键词历史记录窗口"""
-        try:
-            def on_apply_keywords(keywords_list):
-                """应用选中的关键词到主界面"""
-                keywords_str = ','.join(keywords_list)
-                self.keywords_var.set(keywords_str)
-                self.status_var.set(f"已应用历史关键词: {keywords_str[:50]}{'...' if len(keywords_str) > 50 else ''}")
-            
-            FilterKeywordsHistoryWindow(
-                self.root,
-                self.filter_keywords_history,
-                on_apply_keywords
-            )
-            self.status_var.set("已打开过滤关键词历史")
-        except Exception as e:
-            messagebox.showerror("错误", f"无法打开过滤关键词历史: {str(e)}")
     
     def close(self):
         """关闭应用，确保资源正确清理"""
