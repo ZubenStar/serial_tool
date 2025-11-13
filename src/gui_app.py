@@ -411,7 +411,7 @@ class SerialToolGUI:
         self.baudrate_var = tk.StringVar(value="115200")
         baudrate_combo = ttk.Combobox(baud_frame, textvariable=self.baudrate_var, width=10,
                                       font=('Microsoft YaHei UI', 10),
-                                      values=["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600", "3000000"])
+                                      values=["1152000","2000000", "3000000", "6000000"])
         baudrate_combo.pack(side=tk.LEFT, padx=(0, 5))
         self.baudrate_var.trace_add('write', self._on_config_change)
 
