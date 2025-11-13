@@ -528,7 +528,27 @@ class SerialToolGUI:
         # === 右侧数据显示区 ===
         display_frame = ttk.LabelFrame(right_panel, text="📺 数据显示", padding=12)
         display_frame.pack(fill=tk.BOTH, expand=True)
-
+        
+        # 搜索工具栏（初始隐藏）
+        self.search_frame = ttk.Frame(display_frame)
+        
+        search_label = ttk.Label(self.search_frame, text="🔍", font=('Segoe UI Emoji', 10))
+        search_label.pack(side=tk.LEFT, padx=(5, 5))
+        
+        self.search_var = tk.StringVar()
+        self.search_entry = ttk.Entry(self.search_frame, textvariable=self.search_var, font=('Microsoft YaHei UI', 9), width=30)
+        self.search_entry.pack(side=tk.LEFT, padx=5)
+        self.search_entry.bind('<Return>', lambda e: self._search_next())
+        self.search_entry.bind('<Escape>', lambda e: self._hide_search())
+        
+        ttk.Button(self.search_frame, text="下一个", command=self._search_next, width=8).pack(side=tk.LEFT, padx=2)
+        ttk.Button(self.search_frame, text="上一个", command=self._search_prev, width=8).pack(side=tk.LEFT, padx=2)
+        
+        self.search_result_label = ttk.Label(self.search_frame, text="", font=('Microsoft YaHei UI', 9))
+        self.search_result_label.pack(side=tk.LEFT, padx=10)
+        
+        ttk.Button(self.search_frame, text="✕", command=self._hide_search, width=3).pack(side=tk.LEFT, padx=2)
+        
         # 使用柔和的文本显示区域
         self.text_display = scrolledtext.ScrolledText(
             display_frame,
@@ -544,6 +564,13 @@ class SerialToolGUI:
             highlightthickness=0
         )
         self.text_display.pack(fill=tk.BOTH, expand=True)
+        
+        # 绑定Ctrl+F快捷键
+        self.text_display.bind('<Control-f>', lambda e: self._show_search())
+        
+        # 搜索相关变量
+        self.search_matches = []
+        self.current_match_index = -1
 
         # 配置柔和的颜色标签
         self.text_display.tag_config("timestamp", foreground=self.theme_colors['timestamp'], font=('Consolas', 9))
@@ -555,6 +582,10 @@ class SerialToolGUI:
         # 动态端口颜色映射
         self.port_color_tags = {}
         self._init_color_tags()
+        
+        # 配置搜索高亮标签
+        self.text_display.tag_config("search_highlight", background="#ffff00", foreground="#000000")
+        self.text_display.tag_config("search_current", background="#ff9900", foreground="#000000")
 
         # 底部信息区域容器
         bottom_info_frame = ttk.Frame(right_panel)
@@ -1036,9 +1067,116 @@ class SerialToolGUI:
         except Exception as e:
             print(f"清理显示行数错误: {e}")
 
+    def _show_search(self):
+        """显示搜索工具栏"""
+        self.search_frame.pack(fill=tk.X, pady=(0, 5), before=self.text_display)
+        self.search_entry.focus_set()
+        self.search_var.set("")
+        self._clear_search_highlights()
+    
+    def _hide_search(self):
+        """隐藏搜索工具栏"""
+        self.search_frame.pack_forget()
+        self._clear_search_highlights()
+        self.text_display.focus_set()
+    
+    def _clear_search_highlights(self):
+        """清除所有搜索高亮"""
+        self.text_display.tag_remove("search_highlight", "1.0", tk.END)
+        self.text_display.tag_remove("search_current", "1.0", tk.END)
+        self.search_matches = []
+        self.current_match_index = -1
+        self.search_result_label.config(text="")
+    
+    def _search_next(self):
+        """搜索下一个匹配项"""
+        search_text = self.search_var.get()
+        if not search_text:
+            return
+        
+        # 如果是新搜索，先查找所有匹配项
+        if not self.search_matches:
+            self._find_all_matches(search_text)
+        
+        if not self.search_matches:
+            self.search_result_label.config(text="未找到")
+            return
+        
+        # 移动到下一个匹配项
+        self.current_match_index = (self.current_match_index + 1) % len(self.search_matches)
+        self._highlight_current_match()
+    
+    def _search_prev(self):
+        """搜索上一个匹配项"""
+        search_text = self.search_var.get()
+        if not search_text:
+            return
+        
+        # 如果是新搜索，先查找所有匹配项
+        if not self.search_matches:
+            self._find_all_matches(search_text)
+        
+        if not self.search_matches:
+            self.search_result_label.config(text="未找到")
+            return
+        
+        # 移动到上一个匹配项
+        self.current_match_index = (self.current_match_index - 1) % len(self.search_matches)
+        self._highlight_current_match()
+    
+    def _find_all_matches(self, search_text):
+        """查找所有匹配项"""
+        self.search_matches = []
+        self._clear_search_highlights()
+        
+        if not search_text:
+            return
+        
+        # 从文本开头开始搜索
+        start_pos = "1.0"
+        while True:
+            start_pos = self.text_display.search(search_text, start_pos, stopindex=tk.END, nocase=True)
+            if not start_pos:
+                break
+            
+            end_pos = f"{start_pos}+{len(search_text)}c"
+            self.search_matches.append((start_pos, end_pos))
+            
+            # 高亮所有匹配项
+            self.text_display.tag_add("search_highlight", start_pos, end_pos)
+            
+            start_pos = end_pos
+        
+        # 更新结果标签
+        if self.search_matches:
+            self.current_match_index = 0
+            self.search_result_label.config(text=f"找到 {len(self.search_matches)} 个结果")
+            self._highlight_current_match()
+        else:
+            self.search_result_label.config(text="未找到")
+    
+    def _highlight_current_match(self):
+        """高亮当前匹配项"""
+        if not self.search_matches or self.current_match_index < 0:
+            return
+        
+        # 移除之前的当前高亮
+        self.text_display.tag_remove("search_current", "1.0", tk.END)
+        
+        # 添加当前匹配项的高亮
+        start_pos, end_pos = self.search_matches[self.current_match_index]
+        self.text_display.tag_add("search_current", start_pos, end_pos)
+        
+        # 滚动到当前匹配项
+        self.text_display.see(start_pos)
+        
+        # 更新结果标签
+        self.search_result_label.config(text=f"{self.current_match_index + 1} / {len(self.search_matches)}")
+    
     def _clear_display(self):
         """清除显示区域"""
         self.text_display.delete('1.0', tk.END)
+        self._clear_search_highlights()
         self.status_var.set("已清除显示")
 
     def _send_data(self):
