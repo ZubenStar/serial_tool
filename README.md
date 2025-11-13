@@ -89,7 +89,6 @@ pip install -r requirements.txt
 ### 图形界面（推荐）
 
 ```bash
-python src/gui_app.py
 ```
 
 ### 命令行
