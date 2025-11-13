@@ -59,6 +59,9 @@ class SerialToolGUI:
         # 主题状态：默认深色主题
         self.is_dark_theme = True
         
+        # 高级工具区折叠状态
+        self.tools_expanded = False
+        
         # 配置现代化主题
         self._configure_modern_theme()
         
@@ -100,6 +103,9 @@ class SerialToolGUI:
             self._apply_dark_theme()
         else:
             self._apply_light_theme()
+        
+        # 配置专用按钮样式
+        self._configure_special_button_styles()
     
     def _apply_light_theme(self):
         """应用浅色主题 - 现代清新护眼设计"""
@@ -178,7 +184,11 @@ class SerialToolGUI:
             },
             'stats_port': '#007bff',
             'stats_bytes': '#28a745',
-            'stats_separator': '#6c757d'
+            'stats_separator': '#6c757d',
+            'start_button_bg': '#28a745',
+            'start_button_hover': '#218838',
+            'stop_button_bg': '#dc3545',
+            'stop_button_hover': '#c82333'
         }
     
     def _apply_dark_theme(self):
@@ -258,8 +268,70 @@ class SerialToolGUI:
             },
             'stats_port': '#569cd6',
             'stats_bytes': '#4ec9b0',
-            'stats_separator': '#858585'
+            'stats_separator': '#858585',
+            'start_button_bg': '#4ec9b0',
+            'start_button_hover': '#3fa9a0',
+            'stop_button_bg': '#f48771',
+            'stop_button_hover': '#e67761'
         }
+    
+    def _configure_special_button_styles(self):
+        """配置专用按钮样式"""
+        style = ttk.Style()
+        
+        # 启动按钮样式 - 绿色
+        if self.is_dark_theme:
+            start_bg = '#4ec9b0'
+            start_hover = '#3fa9a0'
+        else:
+            start_bg = '#28a745'
+            start_hover = '#218838'
+        
+        style.configure('Start.TButton',
+                       background=start_bg,
+                       foreground='#ffffff',
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=('Microsoft YaHei UI', 11, 'bold'),
+                       padding=(20, 12))
+        style.map('Start.TButton',
+                 background=[('active', start_hover), ('pressed', start_hover)])
+        
+        # 停止按钮样式 - 红色
+        if self.is_dark_theme:
+            stop_bg = '#f48771'
+            stop_hover = '#e67761'
+        else:
+            stop_bg = '#dc3545'
+            stop_hover = '#c82333'
+        
+        style.configure('Stop.TButton',
+                       background=stop_bg,
+                       foreground='#ffffff',
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=('Microsoft YaHei UI', 11, 'bold'),
+                       padding=(20, 12))
+        style.map('Stop.TButton',
+                 background=[('active', stop_hover), ('pressed', stop_hover)])
+        
+        # 小型按钮样式 - 用于工具区
+        style.configure('Small.TButton',
+                       background='#0e639c' if self.is_dark_theme else '#007bff',
+                       foreground='#ffffff',
+                       borderwidth=0,
+                       focuscolor='none',
+                       font=('Microsoft YaHei UI', 9),
+                       padding=(8, 6))
+        
+        # 主题切换小按钮样式
+        style.configure('Theme.TButton',
+                       background='#2d2d2d' if self.is_dark_theme else '#ffffff',
+                       foreground='#d4d4d4' if self.is_dark_theme else '#495057',
+                       borderwidth=1,
+                       relief='flat',
+                       font=('Segoe UI Emoji', 14),
+                       padding=(8, 4))
     
     def _delayed_init(self):
         """延迟初始化非关键组件"""
@@ -268,9 +340,12 @@ class SerialToolGUI:
         
     def _create_widgets(self):
         """创建界面组件 - 优化的左右布局，带滚动条"""
+        # 创建顶部标题栏
+        self._create_title_bar()
+        
         # 创建主容器框架
         main_container = ttk.Frame(self.root)
-        main_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
+        main_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
         
         # 优化：使用after延迟初始化统计显示，减少启动时间
         self._stats_display_created = False
@@ -332,22 +407,20 @@ class SerialToolGUI:
         self.port_combo.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
         ttk.Button(port_frame, text="🔄", command=self._update_available_ports, width=5).pack(side=tk.LEFT)
         
-        # 波特率
+        # 波特率 - 将修改按钮放在同一行
         baud_frame = ttk.Frame(control_frame)
         baud_frame.pack(fill=tk.X, pady=5)
         ttk.Label(baud_frame, text="波特率:", font=('Microsoft YaHei UI', 10, 'bold')).pack(side=tk.LEFT, padx=(0, 10))
         self.baudrate_var = tk.StringVar(value="115200")
-        baudrate_combo = ttk.Combobox(baud_frame, textvariable=self.baudrate_var, width=16,
+        baudrate_combo = ttk.Combobox(baud_frame, textvariable=self.baudrate_var, width=10,
                                       font=('Microsoft YaHei UI', 10),
                                       values=["9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600", "3000000"])
-        baudrate_combo.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
+        baudrate_combo.pack(side=tk.LEFT, padx=(0, 5))
         self.baudrate_var.trace_add('write', self._on_config_change)
         
-        # 波特率修改按钮行
-        baudrate_btn_frame = ttk.Frame(control_frame)
-        baudrate_btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(baudrate_btn_frame, text="🔧 修改当前", command=self._change_current_baudrate).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(baudrate_btn_frame, text="🔧 修改全部", command=self._change_all_baudrates).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        # 波特率修改按钮 - 放在同一行
+        ttk.Button(baud_frame, text="🔧当前", command=self._change_current_baudrate, width=6).pack(side=tk.LEFT, padx=2)
+        ttk.Button(baud_frame, text="🔧全部", command=self._change_all_baudrates, width=6).pack(side=tk.LEFT, padx=2)
         
         # 正则表达式过滤
         regex_frame = ttk.Frame(control_frame)
@@ -364,22 +437,16 @@ class SerialToolGUI:
         ttk.Button(filter_apply_frame, text="✨ 实时应用过滤", command=self._apply_filters_realtime).pack(fill=tk.X)
         ttk.Label(filter_apply_frame, text="无需重启串口即可生效", font=("Microsoft YaHei UI", 9), foreground='#6c757d').pack(anchor=tk.W, pady=(6, 0))
         
-        # 控制按钮
+        # 控制按钮 - 突出显示启动/停止
         btn_frame = ttk.Frame(control_frame)
         btn_frame.pack(fill=tk.X, pady=12)
-        ttk.Button(btn_frame, text="▶️ 启动", command=self._start_monitor).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(btn_frame, text="⏸️ 停止", command=self._stop_monitor).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(btn_frame, text="▶️ 启动", command=self._start_monitor, style='Start.TButton').pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(btn_frame, text="⏸️ 停止", command=self._stop_monitor, style='Stop.TButton').pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
         btn_frame2 = ttk.Frame(control_frame)
         btn_frame2.pack(fill=tk.X, pady=4)
         ttk.Button(btn_frame2, text="⏹️ 全部停止", command=self._stop_all).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(btn_frame2, text="🗑️ 清屏", command=self._clear_display).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        
-        # 主题切换按钮
-        theme_frame = ttk.Frame(control_frame)
-        theme_frame.pack(fill=tk.X, pady=12)
-        self.theme_button = ttk.Button(theme_frame, text="🌙 切换深色模式", command=self._toggle_theme)
-        self.theme_button.pack(fill=tk.X)
         
         # 批量操作区
         batch_frame = ttk.LabelFrame(left_panel, text="⚡ 批量操作", padding=15)
@@ -393,30 +460,38 @@ class SerialToolGUI:
         ttk.Button(batch_btn_frame, text="👁️ 查看", command=self._show_batch_configs).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(batch_btn_frame, text="🗑️ 清空", command=self._clear_batch).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         
-        # 高级工具按钮区
-        tools_frame = ttk.LabelFrame(left_panel, text="🛠️ 高级工具", padding=15)
-        tools_frame.pack(fill=tk.X, pady=8)
+        # 高级工具按钮区 - 可折叠
+        self.tools_frame = ttk.LabelFrame(left_panel, text="🛠️ 高级工具", padding=8)
+        self.tools_frame.pack(fill=tk.X, pady=8)
         
-        # 工具按钮
-        tools_row1 = ttk.Frame(tools_frame)
-        tools_row1.pack(fill=tk.X, pady=5)
-        ttk.Button(tools_row1, text="📄 日志过滤", command=self._open_log_filter).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row1, text="📂 打开日志", command=self._open_log_folder).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        # 折叠/展开标题按钮
+        title_frame = ttk.Frame(self.tools_frame)
+        title_frame.pack(fill=tk.X)
+        self.tools_toggle_btn = ttk.Button(
+            title_frame,
+            text="▼ 展开",
+            command=self._toggle_tools_section,
+            style='Small.TButton'
+        )
+        self.tools_toggle_btn.pack(fill=tk.X, pady=2)
         
-        tools_row2 = ttk.Frame(tools_frame)
-        tools_row2.pack(fill=tk.X, pady=5)
-        ttk.Button(tools_row2, text="📊 可视化", command=self._open_visualizer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row2, text="🔍 数据分析", command=self._open_analyzer).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        # 工具按钮容器（初始隐藏）
+        self.tools_content = ttk.Frame(self.tools_frame)
         
-        tools_row3 = ttk.Frame(tools_frame)
-        tools_row3.pack(fill=tk.X, pady=5)
-        ttk.Button(tools_row3, text="🎬 录制回放", command=self._open_recorder).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row3, text="🤖 自动化", command=self._open_automation).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        # 工具按钮 - 紧凑布局
+        tools_row1 = ttk.Frame(self.tools_content)
+        tools_row1.pack(fill=tk.X, pady=3)
+        ttk.Button(tools_row1, text="📄 日志过滤", command=self._open_log_filter, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row1, text="📂 打开日志", command=self._open_log_folder, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row1, text="📊 可视化", command=self._open_visualizer, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row1, text="🔍 数据分析", command=self._open_analyzer, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
-        tools_row4 = ttk.Frame(tools_frame)
-        tools_row4.pack(fill=tk.X, pady=5)
-        ttk.Button(tools_row4, text="🔧 工具箱", command=self._open_utilities).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(tools_row4, text="🔄 检查更新", command=self._check_for_updates).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        tools_row2 = ttk.Frame(self.tools_content)
+        tools_row2.pack(fill=tk.X, pady=3)
+        ttk.Button(tools_row2, text="🎬 录制回放", command=self._open_recorder, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row2, text="🤖 自动化", command=self._open_automation, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row2, text="🔧 工具箱", command=self._open_utilities, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+        ttk.Button(tools_row2, text="🔄 检查更新", command=self._check_for_updates, style='Small.TButton').pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
         
         # 发送数据区 - 紧凑布局
         send_frame = ttk.LabelFrame(left_panel, text="📤 发送数据", padding=12)
@@ -570,15 +645,72 @@ class SerialToolGUI:
             repo="serial_tool"      # 修改为你的仓库名
         )
     
+    def _create_title_bar(self):
+        """创建顶部标题栏（含主题切换按钮）"""
+        title_bar = tk.Frame(self.root, background=self.theme_colors['bg'], height=40)
+        title_bar.pack(fill=tk.X, side=tk.TOP, padx=8, pady=(8, 0))
+        title_bar.pack_propagate(False)
+        
+        # 应用标题（左侧）
+        title_label = tk.Label(
+            title_bar,
+            text=f"多串口监控工具 v{VERSION}",
+            background=self.theme_colors['bg'],
+            foreground=self.theme_colors['text_fg'],
+            font=('Microsoft YaHei UI', 12, 'bold')
+        )
+        title_label.pack(side=tk.LEFT, padx=10)
+        
+        # 主题切换按钮（右侧）
+        self.theme_toggle_btn = tk.Button(
+            title_bar,
+            text="☀️" if self.is_dark_theme else "🌙",
+            command=self._toggle_theme,
+            background=self.theme_colors['bg'],
+            foreground=self.theme_colors['text_fg'],
+            relief=tk.FLAT,
+            borderwidth=0,
+            font=('Segoe UI Emoji', 16),
+            padx=8,
+            pady=4,
+            cursor='hand2'
+        )
+        self.theme_toggle_btn.pack(side=tk.RIGHT, padx=10)
+        
+        # 鼠标悬停效果
+        def on_enter(e):
+            self.theme_toggle_btn.config(background=self.theme_colors['stats_bg'])
+        def on_leave(e):
+            self.theme_toggle_btn.config(background=self.theme_colors['bg'])
+        
+        self.theme_toggle_btn.bind('<Enter>', on_enter)
+        self.theme_toggle_btn.bind('<Leave>', on_leave)
+    
+    def _toggle_tools_section(self):
+        """切换高级工具区域显示/隐藏"""
+        self.tools_expanded = not self.tools_expanded
+        
+        if self.tools_expanded:
+            # 展开
+            self.tools_toggle_btn.config(text="▲ 收起")
+            self.tools_content.pack(fill=tk.X, pady=(5, 0))
+        else:
+            # 收起
+            self.tools_toggle_btn.config(text="▼ 展开")
+            self.tools_content.pack_forget()
+        
+        # 保存状态
+        self._save_config()
+    
     def _toggle_theme(self):
         """切换深浅主题"""
         self.is_dark_theme = not self.is_dark_theme
         
-        # 更新按钮文本
+        # 更新主题切换按钮图标
         if self.is_dark_theme:
-            self.theme_button.config(text="☀️ 切换浅色模式")
+            self.theme_toggle_btn.config(text="☀️")
         else:
-            self.theme_button.config(text="🌙 切换深色模式")
+            self.theme_toggle_btn.config(text="🌙")
         
         # 重新应用主题
         self._configure_modern_theme()
@@ -596,6 +728,13 @@ class SerialToolGUI:
         # 更新Canvas背景色
         if hasattr(self, 'left_canvas'):
             self.left_canvas.config(background=self.theme_colors['bg'])
+        
+        # 更新标题栏和主题按钮
+        if hasattr(self, 'theme_toggle_btn'):
+            self.theme_toggle_btn.config(
+                background=self.theme_colors['bg'],
+                foreground=self.theme_colors['text_fg']
+            )
         
         # 更新状态栏背景色
         if hasattr(self, 'status_frame'):
@@ -1170,6 +1309,9 @@ class SerialToolGUI:
             'theme': {
                 'is_dark': self.is_dark_theme
             },
+            'ui_state': {
+                'tools_expanded': self.tools_expanded
+            },
             'preset_data': self.preset_data_list,
             'batch_configs': self.batch_port_configs
         }
@@ -1203,12 +1345,25 @@ class SerialToolGUI:
                 theme_settings = config.get('theme', {})
                 if 'is_dark' in theme_settings:
                     self.is_dark_theme = theme_settings['is_dark']
-                    # 更新主题按钮文本
-                    if hasattr(self, 'theme_button'):
+                    # 更新主题按钮图标
+                    if hasattr(self, 'theme_toggle_btn'):
                         if self.is_dark_theme:
-                            self.theme_button.config(text="☀️ 浅色模式")
+                            self.theme_toggle_btn.config(text="☀️")
                         else:
-                            self.theme_button.config(text="🌙 深色模式")
+                            self.theme_toggle_btn.config(text="🌙")
+                
+                # 加载UI状态
+                ui_state = config.get('ui_state', {})
+                if 'tools_expanded' in ui_state:
+                    self.tools_expanded = ui_state['tools_expanded']
+                    # 应用折叠状态（延迟到组件创建后）
+                    if hasattr(self, 'tools_toggle_btn'):
+                        if self.tools_expanded:
+                            self.tools_toggle_btn.config(text="▲ 收起")
+                            if hasattr(self, 'tools_content'):
+                                self.tools_content.pack(fill=tk.X, pady=(5, 0))
+                        else:
+                            self.tools_toggle_btn.config(text="▼ 展开")
                 
                 # 加载预设数据
                 self.preset_data_list = config.get('preset_data', [])
