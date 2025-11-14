@@ -385,6 +385,28 @@ class SerialToolGUI:
             padding=(8, 4),
         )
 
+        # 批量启动按钮样式 - 显眼的橙色
+        if self.is_dark_theme:
+            batch_start_bg = "#ff8c00"  # 橙色
+            batch_start_hover = "#ff7700"
+        else:
+            batch_start_bg = "#ff6b00"  # 亮橙色
+            batch_start_hover = "#e55a00"
+
+        style.configure(
+            "BatchStart.TButton",
+            background=batch_start_bg,
+            foreground="#ffffff",
+            borderwidth=0,
+            focuscolor="none",
+            font=("Microsoft YaHei UI", 11, "bold"),
+            padding=(20, 12),
+        )
+        style.map(
+            "BatchStart.TButton",
+            background=[("active", batch_start_hover), ("pressed", batch_start_hover)],
+        )
+
     def _delayed_init(self):
         """延迟初始化非关键组件"""
         self._update_available_ports()
@@ -569,12 +591,15 @@ class SerialToolGUI:
         batch_frame = ttk.LabelFrame(left_panel, text="⚡ 批量操作", padding=15)
         batch_frame.pack(fill=tk.X, pady=8)
 
-        ttk.Button(batch_frame, text="➕ 添加到批量", command=self._add_to_batch).pack(
-            fill=tk.X, pady=5
-        )
-        ttk.Button(batch_frame, text="🚀 启动全部", command=self._start_batch).pack(
-            fill=tk.X, pady=5
-        )
+        # 主要操作按钮 - 并排显示
+        main_batch_frame = ttk.Frame(batch_frame)
+        main_batch_frame.pack(fill=tk.X, pady=5)
+        ttk.Button(
+            main_batch_frame, text="💾 保存活动配置", command=self._save_all_active_to_batch
+        ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(
+            main_batch_frame, text=" 启动全部", command=self._start_batch, style="BatchStart.TButton"
+        ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
 
         batch_btn_frame = ttk.Frame(batch_frame)
         batch_btn_frame.pack(fill=tk.X, pady=5)
@@ -1693,6 +1718,57 @@ class SerialToolGUI:
             info += "\n\n"
 
         messagebox.showinfo("批量配置详情", info)
+
+    def _save_all_active_to_batch(self):
+        """将所有当前活动串口配置保存到批量配置列表"""
+        active_ports = self.monitor.get_active_ports()
+        
+        if not active_ports:
+            messagebox.showwarning("警告", "当前没有活动的串口监控")
+            return
+        
+        added_count = 0
+        skipped_count = 0
+        duplicate_ports = []
+        
+        for port in active_ports:
+            # Check if already in batch
+            if any(config["port"] == port for config in self.batch_port_configs):
+                skipped_count += 1
+                duplicate_ports.append(port)
+                continue
+                
+            # Get port configuration
+            if port in self.port_configs:
+                config = self.port_configs[port]
+                batch_config = {
+                    "port": port,
+                    "baudrate": config.get("baudrate", 9600),
+                    "regex_patterns": config.get("regex_patterns", [])
+                }
+                self.batch_port_configs.append(batch_config)
+                added_count += 1
+            else:
+                # This shouldn't happen, but handle it gracefully
+                batch_config = {
+                    "port": port,
+                    "baudrate": 9600,
+                    "regex_patterns": []
+                }
+                self.batch_port_configs.append(batch_config)
+                added_count += 1
+        
+        self._save_batch_configs()
+        
+        # Show result message
+        if added_count > 0:
+            msg = f"已添加 {added_count} 个活动串口到批量配置"
+            if skipped_count > 0:
+                msg += f"\n跳过 {skipped_count} 个已存在的: {', '.join(duplicate_ports)}"
+            messagebox.showinfo("保存成功", msg)
+            self.status_var.set(f"已保存 {added_count} 个活动串口到批量配置")
+        else:
+            messagebox.showinfo("提示", f"所有活动串口都已存在于批量配置中 ({skipped_count} 个)")
 
     def _save_config(self):
         """保存配置到统一配置文件"""
