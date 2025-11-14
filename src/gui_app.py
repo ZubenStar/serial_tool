@@ -135,7 +135,7 @@ class SerialToolGUI:
             font=("Microsoft YaHei UI", 11, "bold"),
         )
 
-        # 配置Button样式 - 现代蓝色调
+        # 配置Button样式 - 现代蓝色调，统一大小
         style.configure(
             "TButton",
             background="#007bff",
@@ -143,7 +143,7 @@ class SerialToolGUI:
             borderwidth=0,
             focuscolor="none",
             font=("Microsoft YaHei UI", 10, "bold"),
-            padding=(14, 10),
+            padding=(15, 8),  # 统一内边距
         )
         style.map(
             "TButton",
@@ -236,7 +236,7 @@ class SerialToolGUI:
             font=("Microsoft YaHei UI", 11, "bold"),
         )
 
-        # 配置Button样式 - 现代蓝色调
+        # 配置Button样式 - 现代蓝色调，统一大小
         style.configure(
             "TButton",
             background="#0e639c",
@@ -244,7 +244,7 @@ class SerialToolGUI:
             borderwidth=0,
             focuscolor="none",
             font=("Microsoft YaHei UI", 10, "bold"),
-            padding=(14, 10),
+            padding=(15, 8),  # 统一内边距
         )
         style.map(
             "TButton",
@@ -320,6 +320,10 @@ class SerialToolGUI:
         """配置专用按钮样式"""
         style = ttk.Style()
 
+        # 统一的按钮padding和字体
+        uniform_padding = (15, 8)  # 统一内边距
+        uniform_font = ("Microsoft YaHei UI", 10, "bold")  # 统一字体
+
         # 启动按钮样式 - 绿色
         if self.is_dark_theme:
             start_bg = "#4ec9b0"
@@ -334,8 +338,8 @@ class SerialToolGUI:
             foreground="#ffffff",
             borderwidth=0,
             focuscolor="none",
-            font=("Microsoft YaHei UI", 11, "bold"),
-            padding=(20, 12),
+            font=uniform_font,
+            padding=uniform_padding,
         )
         style.map(
             "Start.TButton",
@@ -356,14 +360,14 @@ class SerialToolGUI:
             foreground="#ffffff",
             borderwidth=0,
             focuscolor="none",
-            font=("Microsoft YaHei UI", 11, "bold"),
-            padding=(20, 12),
+            font=uniform_font,
+            padding=uniform_padding,
         )
         style.map(
             "Stop.TButton", background=[("active", stop_hover), ("pressed", stop_hover)]
         )
 
-        # 小型按钮样式 - 用于工具区
+        # 小型按钮样式 - 用于工具区，统一大小
         style.configure(
             "Small.TButton",
             background="#0e639c" if self.is_dark_theme else "#007bff",
@@ -371,7 +375,7 @@ class SerialToolGUI:
             borderwidth=0,
             focuscolor="none",
             font=("Microsoft YaHei UI", 9),
-            padding=(8, 6),
+            padding=uniform_padding,  # 使用统一padding
         )
 
         # 主题切换小按钮样式
@@ -399,8 +403,8 @@ class SerialToolGUI:
             foreground="#ffffff",
             borderwidth=0,
             focuscolor="none",
-            font=("Microsoft YaHei UI", 11, "bold"),
-            padding=(20, 12),
+            font=uniform_font,
+            padding=uniform_padding,  # 使用统一padding
         )
         style.map(
             "BatchStart.TButton",
@@ -507,7 +511,7 @@ class SerialToolGUI:
         )
         self.port_combo.pack(side=tk.LEFT, padx=(0, 10), fill=tk.X, expand=True)
         ttk.Button(
-            port_frame, text="🔄", command=self._update_available_ports, width=5
+            port_frame, text="🔄 刷新", command=self._update_available_ports, width=8
         ).pack(side=tk.LEFT)
 
         # 波特率 - 将修改按钮放在同一行
@@ -527,12 +531,12 @@ class SerialToolGUI:
         baudrate_combo.pack(side=tk.LEFT, padx=(0, 5))
         self.baudrate_var.trace_add("write", self._on_config_change)
 
-        # 波特率修改按钮 - 放在同一行
+        # 波特率修改按钮 - 放在同一行，统一大小
         ttk.Button(
-            baud_frame, text="🔧当前", command=self._change_current_baudrate, width=6
+            baud_frame, text="🔧当前", command=self._change_current_baudrate, width=8
         ).pack(side=tk.LEFT, padx=2)
         ttk.Button(
-            baud_frame, text="🔧全部", command=self._change_all_baudrates, width=6
+            baud_frame, text="🔧全部", command=self._change_all_baudrates, width=8
         ).pack(side=tk.LEFT, padx=2)
 
         # 正则表达式过滤
@@ -568,47 +572,62 @@ class SerialToolGUI:
             foreground="#6c757d",
         ).pack(anchor=tk.W, pady=(6, 0))
 
-        # 控制按钮 - 突出显示启动/停止
+        # 控制按钮 - 统一大小和布局
         btn_frame = ttk.Frame(control_frame)
         btn_frame.pack(fill=tk.X, pady=12)
         ttk.Button(
-            btn_frame, text="▶️ 启动", command=self._start_monitor, style="Start.TButton"
+            btn_frame,
+            text="▶️ 启动",
+            command=self._start_monitor,
+            style="Start.TButton",
+            width=12,
         ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(
-            btn_frame, text="⏸️ 停止", command=self._stop_monitor, style="Stop.TButton"
+            btn_frame,
+            text="⏸️ 停止",
+            command=self._stop_monitor,
+            style="Stop.TButton",
+            width=12,
         ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
 
         btn_frame2 = ttk.Frame(control_frame)
         btn_frame2.pack(fill=tk.X, pady=4)
-        ttk.Button(btn_frame2, text="⏹️ 全部停止", command=self._stop_all).pack(
-            side=tk.LEFT, padx=4, expand=True, fill=tk.X
-        )
-        ttk.Button(btn_frame2, text="🗑️ 清屏", command=self._clear_display).pack(
-            side=tk.LEFT, padx=4, expand=True, fill=tk.X
-        )
+        ttk.Button(
+            btn_frame2, text="⏹️ 全部停止", command=self._stop_all, width=12
+        ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
+        ttk.Button(
+            btn_frame2, text="🗑️ 清屏", command=self._clear_display, width=12
+        ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
 
         # 批量操作区
         batch_frame = ttk.LabelFrame(left_panel, text="⚡ 批量操作", padding=15)
         batch_frame.pack(fill=tk.X, pady=8)
 
-        # 主要操作按钮 - 并排显示
+        # 主要操作按钮 - 统一大小和布局
         main_batch_frame = ttk.Frame(batch_frame)
         main_batch_frame.pack(fill=tk.X, pady=5)
         ttk.Button(
-            main_batch_frame, text="💾 保存活动配置", command=self._save_all_active_to_batch
+            main_batch_frame,
+            text="💾 保存活动配置",
+            command=self._save_all_active_to_batch,
+            width=16,
         ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
         ttk.Button(
-            main_batch_frame, text=" 启动全部", command=self._start_batch, style="BatchStart.TButton"
+            main_batch_frame,
+            text="🚀 启动全部",
+            command=self._start_batch,
+            style="BatchStart.TButton",
+            width=16,
         ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
 
         batch_btn_frame = ttk.Frame(batch_frame)
         batch_btn_frame.pack(fill=tk.X, pady=5)
         ttk.Button(
-            batch_btn_frame, text="👁️ 查看", command=self._show_batch_configs
+            batch_btn_frame, text="👁️ 查看", command=self._show_batch_configs, width=16
         ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
-        ttk.Button(batch_btn_frame, text="🗑️ 清空", command=self._clear_batch).pack(
-            side=tk.LEFT, padx=4, expand=True, fill=tk.X
-        )
+        ttk.Button(
+            batch_btn_frame, text="🗑️ 清空", command=self._clear_batch, width=16
+        ).pack(side=tk.LEFT, padx=4, expand=True, fill=tk.X)
 
         # 高级工具按钮区 - 可折叠
         self.tools_frame = ttk.LabelFrame(left_panel, text="🛠️ 高级工具", padding=8)
@@ -628,70 +647,70 @@ class SerialToolGUI:
         # 工具按钮容器（初始隐藏）
         self.tools_content = ttk.Frame(self.tools_frame)
 
-        # 工具按钮 - 改为网格布局，确保按钮文字完整显示
+        # 工具按钮 - 网格布局，统一按钮大小
         tools_grid = ttk.Frame(self.tools_content)
         tools_grid.pack(fill=tk.X, pady=3)
-        
-        # 第一行按钮
+
+        # 第一行按钮 - 统一文字长度和宽度
         ttk.Button(
             tools_grid,
             text="📄 日志过滤",
             command=self._open_log_filter,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(
             tools_grid,
-            text="📂 打开日志",
+            text="📂 日志文件夹",
             command=self._open_log_folder,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(
             tools_grid,
-            text="📊 可视化",
+            text="📊 数据可视化",
             command=self._open_visualizer,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=0, column=2, padx=2, pady=2, sticky="ew")
         ttk.Button(
             tools_grid,
             text="🔍 数据分析",
             command=self._open_analyzer,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=0, column=3, padx=2, pady=2, sticky="ew")
 
-        # 第二行按钮
+        # 第二行按钮 - 统一文字长度和宽度
         ttk.Button(
             tools_grid,
             text="🎬 录制回放",
             command=self._open_recorder,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(
             tools_grid,
-            text="🤖 自动化",
+            text="🤖 自动化测试",
             command=self._open_automation,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(
             tools_grid,
-            text="🔧 工具箱",
+            text="🔧 实用工具箱",
             command=self._open_utilities,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=1, column=2, padx=2, pady=2, sticky="ew")
         ttk.Button(
             tools_grid,
             text="🔄 检查更新",
             command=self._check_for_updates,
             style="Small.TButton",
-            width=12
+            width=10,
         ).grid(row=1, column=3, padx=2, pady=2, sticky="ew")
-        
+
         # 配置网格列权重，使按钮均匀分布
         for i in range(4):
             tools_grid.columnconfigure(i, weight=1)
@@ -744,17 +763,20 @@ class SerialToolGUI:
         ).pack(fill=tk.X)
         self.send_data_var.trace_add("write", self._on_config_change)
 
-        # 按钮行：发送、保存预设、删除预设
+        # 按钮行：发送、保存预设、删除预设 - 统一大小
         send_btn_frame = ttk.Frame(send_frame)
         send_btn_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(send_btn_frame, text="📤 发送", command=self._send_data).pack(
-            side=tk.LEFT, padx=3, expand=True, fill=tk.X
-        )
-        ttk.Button(send_btn_frame, text="💾 保存", command=self._save_preset_data).pack(
-            side=tk.LEFT, padx=3, expand=True, fill=tk.X
-        )
         ttk.Button(
-            send_btn_frame, text="🗑️ 删除", command=self._delete_preset_data
+            send_btn_frame, text="📤 发送数据", command=self._send_data, width=12
+        ).pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
+        ttk.Button(
+            send_btn_frame, text="💾 保存预设", command=self._save_preset_data, width=12
+        ).pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
+        ttk.Button(
+            send_btn_frame,
+            text="🗑️ 删除预设",
+            command=self._delete_preset_data,
+            width=12,
         ).pack(side=tk.LEFT, padx=3, expand=True, fill=tk.X)
 
         # === 右侧数据显示区 ===
@@ -973,7 +995,6 @@ class SerialToolGUI:
 
         # 保存状态
         self._save_config()
-
 
     def _toggle_theme(self):
         """切换深浅主题"""
@@ -1722,22 +1743,22 @@ class SerialToolGUI:
     def _save_all_active_to_batch(self):
         """将所有当前活动串口配置保存到批量配置列表"""
         active_ports = self.monitor.get_active_ports()
-        
+
         if not active_ports:
             messagebox.showwarning("警告", "当前没有活动的串口监控")
             return
-        
+
         added_count = 0
         skipped_count = 0
         duplicate_ports = []
-        
+
         for port in active_ports:
             # Check if already in batch
             if any(config["port"] == port for config in self.batch_port_configs):
                 skipped_count += 1
                 duplicate_ports.append(port)
                 continue
-                
+
             # Get port configuration
             if port in self.port_configs:
                 config = self.port_configs[port]
@@ -1757,9 +1778,9 @@ class SerialToolGUI:
                 }
                 self.batch_port_configs.append(batch_config)
                 added_count += 1
-        
+
         self._save_batch_configs()
-        
+
         # Show result message
         if added_count > 0:
             msg = f"已添加 {added_count} 个活动串口到批量配置"
