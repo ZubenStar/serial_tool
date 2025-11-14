@@ -391,7 +391,7 @@ class SerialToolGUI:
         self._start_stats_update_loop()
 
     def _create_widgets(self):
-        """创建界面组件 - 优化的左右布局，带滚动条"""
+        """创建界面组件 - 可拖动调整的左右布局，带滚动条"""
         # 创建主容器框架
         main_container = ttk.Frame(self.root)
         main_container.pack(fill=tk.BOTH, expand=True, padx=8, pady=(0, 8))
@@ -399,10 +399,12 @@ class SerialToolGUI:
         # 优化：使用after延迟初始化统计显示，减少启动时间
         self._stats_display_created = False
 
-        # 左侧面板容器 - 带滚动条
-        left_container = ttk.Frame(main_container, width=460)
-        left_container.pack(side=tk.LEFT, fill=tk.BOTH, padx=(0, 15))
-        left_container.pack_propagate(False)
+        # 创建可拖动的PanedWindow - 水平方向
+        self.paned_window = ttk.PanedWindow(main_container, orient=tk.HORIZONTAL)
+        self.paned_window.pack(fill=tk.BOTH, expand=True)
+
+        # 左侧面板容器 - 可调整宽度
+        left_container = ttk.Frame(self.paned_window)
 
         # 创建Canvas和Scrollbar
         self.left_canvas = tk.Canvas(
@@ -440,15 +442,31 @@ class SerialToolGUI:
         scrollbar.pack(side="right", fill="y")
         self.left_canvas.pack(side="left", fill="both", expand=True)
 
-        # 鼠标滚轮绑定
-        def _on_mousewheel(event):
+        # 鼠标滚轮绑定 - 绑定到左侧Canvas和内部Frame
+        def _on_left_mousewheel(event):
             self.left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
-        self.left_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        self.left_canvas.bind("<MouseWheel>", _on_left_mousewheel)
+        left_panel.bind("<MouseWheel>", _on_left_mousewheel)
+
+        # 为左侧面板内的所有子组件也绑定滚轮事件
+        def _bind_mousewheel_to_widget(widget):
+            widget.bind("<MouseWheel>", _on_left_mousewheel)
+            for child in widget.winfo_children():
+                _bind_mousewheel_to_widget(child)
+
+        # 延迟绑定，确保所有组件都已创建
+        self.root.after(200, lambda: _bind_mousewheel_to_widget(left_panel))
 
         # 右侧数据显示区域
-        right_panel = ttk.Frame(main_container)
-        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 0))
+        right_panel = ttk.Frame(self.paned_window)
+
+        # 将左右面板添加到PanedWindow中，设置初始宽度
+        self.paned_window.add(left_container, weight=0)  # 左侧面板
+        self.paned_window.add(right_panel, weight=1)  # 右侧面板，weight=1表示可扩展
+
+        # 设置初始分隔条位置（左侧约460像素）
+        self.root.after(100, self._set_initial_paned_position)
 
         # === 左侧面板内容 ===
         # 串口控制区 - 紧凑布局
@@ -763,6 +781,12 @@ class SerialToolGUI:
         # 绑定Ctrl+F快捷键
         self.text_display.bind("<Control-f>", lambda e: self._show_search())
 
+        # 为右侧文本显示区域绑定滚轮事件
+        def _on_right_mousewheel(event):
+            self.text_display.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        self.text_display.bind("<MouseWheel>", _on_right_mousewheel)
+
         # 搜索相关变量
         self.search_matches = []
         self.current_match_index = -1
@@ -915,6 +939,19 @@ class SerialToolGUI:
 
         # 保存状态
         self._save_config()
+
+    def _set_initial_paned_position(self):
+        """设置PanedWindow的初始分隔条位置"""
+        try:
+            # 获取窗口总宽度
+            total_width = self.paned_window.winfo_width()
+            if total_width > 0:
+                # 计算左侧面板应该的宽度（460像素或总宽度的1/3，取较小值）
+                target_width = min(460, total_width // 3)
+                # 设置分隔条位置
+                self.paned_window.sash_place(0, target_width, 0)
+        except Exception as e:
+            print(f"设置初始分隔条位置失败: {e}")
 
     def _toggle_theme(self):
         """切换深浅主题"""
