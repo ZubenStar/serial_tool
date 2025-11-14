@@ -533,10 +533,10 @@ class SerialToolGUI:
 
         # 波特率修改按钮 - 放在同一行，统一大小
         ttk.Button(
-            baud_frame, text="🔧当前", command=self._change_current_baudrate, width=8
+            baud_frame, text="🔧 修改当前", command=self._change_current_baudrate, width=12
         ).pack(side=tk.LEFT, padx=2)
         ttk.Button(
-            baud_frame, text="🔧全部", command=self._change_all_baudrates, width=8
+            baud_frame, text="🔧 修改全部", command=self._change_all_baudrates, width=12
         ).pack(side=tk.LEFT, padx=2)
 
         # 正则表达式过滤
