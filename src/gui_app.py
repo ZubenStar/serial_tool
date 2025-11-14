@@ -603,61 +603,73 @@ class SerialToolGUI:
         # 工具按钮容器（初始隐藏）
         self.tools_content = ttk.Frame(self.tools_frame)
 
-        # 工具按钮 - 单行布局（4个按钮在一排）
-        tools_row1 = ttk.Frame(self.tools_content)
-        tools_row1.pack(fill=tk.X, pady=3)
+        # 工具按钮 - 改为网格布局，确保按钮文字完整显示
+        tools_grid = ttk.Frame(self.tools_content)
+        tools_grid.pack(fill=tk.X, pady=3)
+        
+        # 第一行按钮
         ttk.Button(
-            tools_row1,
+            tools_grid,
             text="📄 日志过滤",
             command=self._open_log_filter,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=0, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(
-            tools_row1,
+            tools_grid,
             text="📂 打开日志",
             command=self._open_log_folder,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=0, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(
-            tools_row1,
+            tools_grid,
             text="📊 可视化",
             command=self._open_visualizer,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=0, column=2, padx=2, pady=2, sticky="ew")
         ttk.Button(
-            tools_row1,
+            tools_grid,
             text="🔍 数据分析",
             command=self._open_analyzer,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=0, column=3, padx=2, pady=2, sticky="ew")
 
-        # 第二排按钮
-        tools_row2 = ttk.Frame(self.tools_content)
-        tools_row2.pack(fill=tk.X, pady=3)
+        # 第二行按钮
         ttk.Button(
-            tools_row2,
+            tools_grid,
             text="🎬 录制回放",
             command=self._open_recorder,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=1, column=0, padx=2, pady=2, sticky="ew")
         ttk.Button(
-            tools_row2,
+            tools_grid,
             text="🤖 自动化",
             command=self._open_automation,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=1, column=1, padx=2, pady=2, sticky="ew")
         ttk.Button(
-            tools_row2,
+            tools_grid,
             text="🔧 工具箱",
             command=self._open_utilities,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=1, column=2, padx=2, pady=2, sticky="ew")
         ttk.Button(
-            tools_row2,
+            tools_grid,
             text="🔄 检查更新",
             command=self._check_for_updates,
             style="Small.TButton",
-        ).pack(side=tk.LEFT, padx=2, expand=True, fill=tk.X)
+            width=12
+        ).grid(row=1, column=3, padx=2, pady=2, sticky="ew")
+        
+        # 配置网格列权重，使按钮均匀分布
+        for i in range(4):
+            tools_grid.columnconfigure(i, weight=1)
 
         # 发送数据区 - 紧凑布局
         send_frame = ttk.LabelFrame(left_panel, text="📤 发送数据", padding=12)
