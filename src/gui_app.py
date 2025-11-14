@@ -461,12 +461,9 @@ class SerialToolGUI:
         # 右侧数据显示区域
         right_panel = ttk.Frame(self.paned_window)
 
-        # 将左右面板添加到PanedWindow中，设置初始宽度
+        # 将左右面板添加到PanedWindow中
         self.paned_window.add(left_container, weight=0)  # 左侧面板
         self.paned_window.add(right_panel, weight=1)  # 右侧面板，weight=1表示可扩展
-
-        # 设置初始分隔条位置（左侧约460像素）
-        self.root.after(100, self._set_initial_paned_position)
 
         # === 左侧面板内容 ===
         # 串口控制区 - 紧凑布局
@@ -940,18 +937,6 @@ class SerialToolGUI:
         # 保存状态
         self._save_config()
 
-    def _set_initial_paned_position(self):
-        """设置PanedWindow的初始分隔条位置"""
-        try:
-            # 获取窗口总宽度
-            total_width = self.paned_window.winfo_width()
-            if total_width > 0:
-                # 计算左侧面板应该的宽度（460像素或总宽度的1/3，取较小值）
-                target_width = min(460, total_width // 3)
-                # 设置分隔条位置
-                self.paned_window.sash_place(0, target_width, 0)
-        except Exception as e:
-            print(f"设置初始分隔条位置失败: {e}")
 
     def _toggle_theme(self):
         """切换深浅主题"""
